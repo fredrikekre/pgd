@@ -40,7 +40,7 @@ function mainNewton()
     # Material stiffness
     E = 1; ν = 0.3
     D = JuAFEM.hooke(2,E,ν); D = D[[1,2,4],[1,2,4]]
-    
+
     # Boundary conditions
     bc = [1                             0;
           2                             0;
@@ -56,9 +56,9 @@ function mainNewton()
 
     b = [1.0,1.0] # Body force
 
-    nModes = 1
-    
-    a = rand(ndofs,nModes)
+    n_modes = 1
+
+    a = rand(ndofs, n_modes)
 
     function f!(an,fvec) # For NLsolve
         globres = calc_globres(an,a,U,D,edof,b)
@@ -81,11 +81,13 @@ function mainNewton()
     g = calc_globres(u0_fix,a,U,D,edof,b)
     println("Residual of fix-point solution = $(maximum(abs(g)))")
 
+
+
     # Initial guess
     u0 = 0.1*ones(Float64,ndofs); u0[bc[:,1]] = 0.0
     u = copy(u0)
 
-    for modeItr = 1:nModes # Mode iterations
+    for modeItr = 1:n_modes # Mode iterations
         i = 0
         while true; i+=1 # Newton iterations
             g = calc_globres(u,a,U,D,edof,b) # Global residual
