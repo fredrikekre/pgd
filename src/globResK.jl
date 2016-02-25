@@ -1,4 +1,4 @@
-function calc_globres{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Matrix,b::Vector)
+function calc_globres{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Matrix,b::Vector,free)
     # Calculate global residual, g_glob
 
     g_glob = zeros(T,maximum(edof))
@@ -11,10 +11,10 @@ function calc_globres{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::
 
         g_glob[m] += ge
     end
-    return g_glob
+    return g_glob[free]
 end
 
-function calc_globK{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Matrix,b::Vector)
+function calc_globK{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Matrix,b::Vector, free)
     # Calculate global tangent stiffness matrix
 
     _K = JuAFEM.start_assemble()
@@ -34,5 +34,5 @@ function calc_globK{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Ma
     end
 
     K = JuAFEM.end_assemble(_K)
-    return K
+    return K[free, free]
 end

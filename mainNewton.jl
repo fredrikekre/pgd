@@ -51,24 +51,34 @@ function mainNewton()
           U.components[1].mesh.nDofs+U.components[2].mesh.nDofs-1 0;
           U.components[1].mesh.nDofs+U.components[2].mesh.nDofs 0]
     ndofs = maximum(edof)
-    free = 1:ndofs
-    free = setdiff(free,bc[:,1])
+    free = setdiff(1:ndofs,bc[:,1])
+    fixed = setdiff(1:ndofs, free)
+    n_free_dofs = length(free)
 
     b = [1.0,1.0] # Body force
 
     n_modes = 1
 
-    a = rand(ndofs, n_modes)
+     # Current full solution and trial
+    full_solution = zeros(ndofs)
+    trial_solution = zeros(ndofs)
 
-    function f!(an,fvec) # For NLsolve
-        globres = calc_globres(an,a,U,D,edof,b)
-        globres[bc[:,1]] = 0.0*bc[:,1]
-        copy!(globres,fvec)
+    function f!(Δan, fvec) # For NLsolve
+        # Update the trial solution with the current solution
+        # plus the trial step
+        trial_solution[free] = full_solution[free] + Δan
+        globres = calc_globres(trial_solution, a,U,D,edof,b, free)
+
+        copy!(fvec, globres)
     end
 
-    function g!(an,gjac) # For NLsolve
-        K = calc_globK(an,a,U,D,edof,b)
-        copy!(gjac,K)
+    function g!(Δan, gjac) # For NLsolve
+        trial_solution[free] = full_solution[free] + Δan
+        K = calc_globK(trial_solution,a,U,D,edof,b,free)
+        # Workaround for copy! being slow on 0.4 for sparse matrices
+        gjac.colptr = K.colptr
+        gjac.rowval = K.rowval
+        gjac.nzval = K.nzval
     end
 
     # Mode 1 from fixpoint solution (20x20 elements x ∈ [0,20], y ∈ [0,20])
@@ -77,52 +87,30 @@ function mainNewton()
 
     u0_fix = [aX_fix; aY_fix]
 
-
-    g = calc_globres(u0_fix,a,U,D,edof,b)
+    a = rand(ndofs, n_modes)
+    g = calc_globres(u0_fix,a,U,D,edof,b,free)
     println("Residual of fix-point solution = $(maximum(abs(g)))")
 
-
-
     # Initial guess
-    u0 = 0.1*ones(Float64,ndofs); u0[bc[:,1]] = 0.0
-    u = copy(u0)
+    # We only guess on the unconstrained nodes, the others will not be
+    # changed during the newton iterations
+    Δan_0 = 0.1*ones(Float64, n_free_dofs);
 
-    for modeItr = 1:n_modes # Mode iterations
-        i = 0
-        while true; i+=1 # Newton iterations
-            g = calc_globres(u,a,U,D,edof,b) # Global residual
-            tol = 1e-7
-            if maximum(abs(g[free])) < tol
-                println("Mode $modeItr converged after $i iterations, g = $(maximum(abs(g)))")
-                break
-            end
-            println("Iteration $i, residual $(maximum(abs(g)))")
-            K = calc_globK(u,a,U,D,edof,b)
-            Δu = -K[free,free]\g[free]
-            u[free] += Δu
-        end
-        a[:,modeItr] = u
-        U.modes = modeItr
-        copy!(u,u0)
+    # Total solution need to satisfy boundary conditions so we enforce that here
+    full_solution[fixed] = bc[:,2]
+
+    df = DifferentiableSparseMultivariateFunction(f!,g!)
+
+    res = nlsolve(df, Δan_0, ftol = 1e-7, iterations=20, show_trace = true, method = :newton)
+    if !converged(res)
+        error("Global equation did not converge")
     end
 
-    return a, U
+    # The total solution after the Newtons step is the previous plus
+    # the solution to the Newton iterations.
+    full_solution[free] += res.zero
 
-    # Δu0 = 0.1*ones(Float64,ndofs); Δu0[bc[:,1]] = 0.0
-    # u = copy(Δu0)
-
-    # df = DifferentiableSparseMultivariateFunction(f!,g!)
-
-    # g = calc_globres(Δu0,a,U,D,edof,b)
-
-    # println("Norm av residual: $(maximum(abs(g)))")
-
-    # res = nlsolve(df,Δu0, ftol = 1e-7, iterations=20, show_trace = true, method = :newton)
-    # if !converged(res)
-    #     error("Global equation did not converge")
-    # end
-    # return 1
-    # return u, U
+    return full_solution, U
 end
 
 o = mainNewton()
