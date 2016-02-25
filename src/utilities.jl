@@ -10,7 +10,7 @@ function create_link(gFunc::PGDFunction)
     gngp = length(JuAFEM.get_quadrule(gFunc.fev).weights) # n gausspoints in gov. mesh
     gnEl = gFunc.mesh.nEl # Number of elements in gov. mesh
 
-    link = Array{Int64}[zeros(Int64,gngp,gnEl) for i in 1:gFunc.nComp]
+    link = [zeros(Int,gngp,gnEl) for i in 1:gFunc.nComp]
 
     #edof = zeros(8,gnEl)
 
@@ -19,7 +19,7 @@ function create_link(gFunc::PGDFunction)
 
         for j = 1:gngp
             xyz = x*gFunc.fev.N[j]
-            
+
             for k = 1:length(xyz)
                 exComp = gFunc.components[k].mesh.ex
                 index = 0

@@ -2,31 +2,31 @@ abstract mesh
 abstract spaceMesh <: mesh
 
 type mesh1D <: spaceMesh
-    ex::Array{Float64,2} # element coordinates
+    ex::Matrix{Float64} # element coordinates
     x::Array{Float64,1} # coordinates
-    edof::Array{Int64,2} # element dofs
-    nEl::Int64 # number of elements
-    nDofs::Int64 # number of dofs
-    nElDofs::Int64 # number of dofs per element
-    nElNodes::Int64 # number of nodes per element (2 for linear, 3 for quadratic)
+    edof::Matrix{Int} # element dofs
+    nEl::Int # number of elements
+    nDofs::Int # number of dofs
+    nElDofs::Int # number of dofs per element
+    nElNodes::Int # number of nodes per element (2 for linear, 3 for quadratic)
     uniform::Bool # uniform mesh? If true: Speeds up integration
 end
 
 type mesh2D <: spaceMesh
-    ex::Array{Float64,2}
-    ey::Array{Float64,2}
-    mesh::Array{Int64,2}
-    edof::Array{Int64,2}
-    b1::Array{Int64,2}
-    b2::Array{Int64,2}
-    b3::Array{Int64,2}
-    b4::Array{Int64,2}
-    nEl::Int64
-    nElx::Int64
-    nEly::Int64
-    nDofs::Int64
-    nElDofs::Int64
-    coord::Array{Float64,2}
+    ex::Matrix{Float64}
+    ey::Matrix{Float64}
+    mesh::Matrix{Int}
+    edof::Matrix{Int}
+    b1::Matrix{Int}
+    b2::Matrix{Int}
+    b3::Matrix{Int}
+    b4::Matrix{Int}
+    nEl::Int
+    nElx::Int
+    nEly::Int
+    nDofs::Int
+    nElDofs::Int
+    coord::Matrix{Float64}
     uniform::Bool
 end
 
@@ -34,7 +34,7 @@ function create_mesh1D(sCoord,eCoord,nEl,nElNodes,nNodeDofs)
 
     nNodes = (nElNodes-1)*nEl + 1
     nDofs = nNodes*nNodeDofs
-    edof = zeros(Int64,nElNodes*nNodeDofs,nEl)
+    edof = zeros(Int,nElNodes*nNodeDofs,nEl)
 
     x = linspace(sCoord,eCoord,nNodes)
 
@@ -49,7 +49,7 @@ function create_mesh1D(sCoord,eCoord,nEl,nElNodes,nNodeDofs)
     for i = 1:nNodeDofs
         edof[i:nNodeDofs:((nElNodes-1)*nNodeDofs+i),:] = mesh*nNodeDofs-(nNodeDofs-i)
     end
-    
+
     return mesh1D(ex,x,edof,nEl,nDofs,nElNodes*nNodeDofs,nElNodes,true)
 end
 
@@ -115,11 +115,11 @@ function create_mesh2D(xStart,xEnd,yStart,yEnd,nElx,nEly,nNodeDofs)
     end
 
     # Make edof and boundaries
-    edof = zeros(Int64,4*nNodeDofs,nEl)
-    b1 = zeros(Int64,nNodeDofs,nxNodes)
-    b2 = zeros(Int64,nNodeDofs,nyNodes)
-    b3 = zeros(Int64,nNodeDofs,nxNodes)
-    b4 = zeros(Int64,nNodeDofs,nyNodes)
+    edof = zeros(Int,4*nNodeDofs,nEl)
+    b1 = zeros(Int,nNodeDofs,nxNodes)
+    b2 = zeros(Int,nNodeDofs,nyNodes)
+    b3 = zeros(Int,nNodeDofs,nxNodes)
+    b4 = zeros(Int,nNodeDofs,nyNodes)
 
     for i = 1:nNodeDofs
         edof[i:nNodeDofs:(3*nNodeDofs+i),:] = mesh*(nNodeDofs)-(nNodeDofs-i)

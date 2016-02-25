@@ -1,12 +1,20 @@
-function intf{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFunction,D::Matrix,b::Vector=zeros(2))
-    # an is the unknowns
-    # a are the already computed modes
-    # 4 node quadrilateral element
-    anx = an[1:4] # Not general
-    any = an[5:8]
-    ax = a[1:4,:]
-    ay = a[5:8,:]
+# Cache some stuff so we don't need to recreate them in every function call
+type Buffers{T}
+    NNx::Matrix{T}
+    NNy::Matrix{T}
+    BBx::Matrix{T}
+    BBy::Matrix{T}
+    g::Vector{T}
+    ε::Vector{T}
+    ε_m::Vector{T} # ε for a mode
+    dNdx::Matrix{Float64}
+    dNdy::Matrix{Float64}
+    Nx::Vector{Float64}
+    Ny::Vector{Float64}
 
+end
+
+function Buffers{T}(Tv::Type{T})
     g = zeros(T,8) # Not general
 
     Nx = zeros(2) # Shape functions
@@ -20,6 +28,55 @@ function intf{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFunction,D::Matrix,b::V
 
     BBx = zeros(T,3,4) # B matrix for stiffness
     BBy = zeros(T,3,4)
+
+    ε = zeros(T, 3)
+    ε_m = zeros(T, 3)
+
+    return Buffers(NNx, NNy, BBx, BBy, g, ε, ε_m, dNdx, dNdy, Nx, Ny)
+end
+
+type BufferCollection{Q, T}
+    buff_grad::Buffers{Q}
+    buff_float::Buffers{T}
+end
+
+function BufferCollection{Q, T}(Tq::Type{Q}, Tt::Type{T})
+    BufferCollection(Buffers(Tq), Buffers(Tt))
+end
+
+import ForwardDiff.GradientNumber
+# The 8 here is the "chunk size" used
+Tgrad = ForwardDiff.GradientNumber{8, Float64, NTuple{8, Float64}}
+get_buffer{T <: GradientNumber}(buff_coll::BufferCollection, ::Type{T}) = buff_coll.buff_grad
+get_buffer{T}(buff_coll::BufferCollection, ::Type{T}) = buff_coll.buff_float
+
+
+const buff_colls = BufferCollection(Tgrad, Float64)
+
+function intf{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFunction,D::Matrix,b::Vector=zeros(2))
+    # an is the unknowns
+    # a are the already computed modes
+    # 4 node quadrilateral element
+    anx = an[1:4] # Not general
+    any = an[5:8]
+    ax = a[1:4,:]
+    ay = a[5:8,:]
+
+    buff_coll = get_buffer(buff_colls, T)
+
+    g = buff_coll.g # Not general
+
+    Nx = buff_coll.Nx # Shape functions
+    Ny = buff_coll.Ny
+
+    dNdx = buff_coll.dNdx # Derivatives
+    dNdy = buff_coll.dNdy
+
+    NNx = buff_coll.NNx# N matrix for force vector
+    NNy = buff_coll.NNy
+
+    BBx = buff_coll.BBx  # B matrix for stiffness
+    BBy = buff_coll.BBy
 
     for (q_point, (ξ,w)) in enumerate(zip(U.fev.quad_rule.points,U.fev.quad_rule.weights))
         ξ_x = ξ[1]
@@ -59,9 +116,10 @@ function intf{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFunction,D::Matrix,b::V
         BBy[2,4] = Nx[1] * dNdy[2] * anx[2] + Nx[2] * dNdy[2] * anx[4]
         BBy[3,4] = dNdx[1] * Ny[2] * anx[2] + dNdx[2] * Ny[2] * anx[4]
 
-        
-        ε = zeros(T,3)
-        ε_m = zeros(T,3) # ε for a mode
+        ε = buff_coll.ε
+        fill!(ε, 0.0)
+        ε_m = buff_coll.ε_m
+
         for m = 1:nModes(U)
             ε_m[1] = dNdx[1] * Ny[1] * ax[1,m] * ay[1,m] + dNdx[2] * Ny[1] * ax[3,m] * ay[1,m] +
                      dNdx[1] * Ny[2] * ax[1,m] * ay[3,m] + dNdx[2] * Ny[2] * ax[3,m] * ay[3,m]
@@ -85,7 +143,7 @@ function intf{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFunction,D::Matrix,b::V
 
         gx = (BBx' * σ - NNx' * b) * dΩ
         gy = (BBy' * σ - NNy' * b) * dΩ
-        
+
         g += [gx; gy] # Här får man typ assemblera då istället om man har en unstructured mesh
     end
 
@@ -194,7 +252,7 @@ end
 #             m_BBx[3,3] = m_NxdNdy[3]
 #             m_BBx[2,4] = m_NxdNdy[4]
 #             m_BBx[3,4] = m_dNdxNy[4]
-            
+
 #             ε += m_BBx*ax[:,m]
 #         end
 
@@ -206,7 +264,7 @@ end
 
 #         gx = BBx' * σ * dΩ
 #         gy = BBy' * σ * dΩ
-        
+
 #         g += [gx; gy] # Här får man typ assemblera då istället om man har en unstructured mesh
 #     end
 
