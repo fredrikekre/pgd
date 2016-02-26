@@ -22,16 +22,20 @@ function visualize(a,U)
 
     for i = 1:nModes
         PyPlot.figure(1)
+        PyPlot.title("Ux")
         PyPlot.plot(U.components[1].mesh.x,Ux[:,i])
         PyPlot.figure(2)
+        PyPlot.title("Vx")
         PyPlot.plot(U.components[1].mesh.x,Vx[:,i])
         PyPlot.figure(3)
+        PyPlot.title("Uy")
         PyPlot.plot(U.components[2].mesh.x,Uy[:,i])
         PyPlot.figure(4)
+        PyPlot.title("Vy")
         PyPlot.plot(U.components[2].mesh.x,Vy[:,i])
     end
 
-    return 1
+    # return 1
 
 
     # Plot displacement field

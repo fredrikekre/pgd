@@ -148,127 +148,34 @@ function intf{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFunction,D::Matrix,b::V
     end
 
     return g
-
 end
 
+function intfUλ{T}(an::Vector{T},fev::JuAFEM.FEValues)
 
-# function intf(an::Vector,a::Matrix,x::Matrix,U::PGDFunction,D::Matrix)
-#     # an is the unknowns
-#     # a are the already computed modes
+    gUλ = zeros(T,6) # Sorry Kristoffer, optimerar sen om det funkar!
+    gU = zeros(T,4)
+    gλ = zeros(T,2)
 
-#     # 4 node quadrilaterla element
-#     anx = an[1:4] # Obs inte generellt
-#     any = an[5:8]
-#     ax = a[1:4,:]
-#     ay = a[5:8,:]
+    ax = an[1:4] # Element displacements
+    λ = an[5:6] # Lagrange multipliers
 
-#     g = zeros(8) # Residual inte heller generell än
+    for (q_point, (ξ,w)) in enumerate(zip(fev.quad_rule.points,fev.quad_rule.weights))
+        Nx = JuAFEM.shape_value(fev,q_point)
+        dx = JuAFEM.detJdV(fev,q_point)
 
-#     _Nx = zeros(2) # Bara basfunktionerna
-#     _Ny = zeros(2)
+        Ux = Nx[1] * ax[1] + Nx[2] * ax[3] # First component
+        Vx = Nx[1] * ax[2] + Nx[2] * ax[4] # Second component
 
-#     _dNdx = zeros(1,2) # Ensamma derivator
-#     _dNdy = zeros(1,2)
+        gU[1] = λ[1] * Nx[1] * Ux * dx
+        #gU[2] = λ[2] * Nx[1] * Vx * dx
+        gU[3] = λ[1] * Nx[2] * Ux * dx
+        #gU[4] = λ[2] * Nx[2] * Vx * dx
 
-#     Nx = zeros(2,4) # Utplacerade för 2D
-#     Ny = zeros(2,4)
+        gλ[1] = 0.5 * Ux^2 * dx #-1 # Ska inte bara här ju, din noob
+        gλ[2] = 0.5 * Vx^2 * dx #-1
 
-#     dNdx = zeros(2,4) # Utplacerade derivator (detta kan nog göras bättre)
-#     dNdy = zeros(2,4)
+        gUλ += [gU; gλ] # * dx might be faster
+    end
 
-#     NNx = zeros(2,4) # Slutgiltig N matris (för kraftvektorn typ)
-#     NNy = zeros(2,4)
-
-#     BBx = zeros(3,4) # Final B-matrix for internal forces
-#     BBy = zeros(3,4)
-#     m_BBx = zeros(3,4)
-
-#     for (q_point, (ξ,w)) in enumerate(zip(U.fev.quad_rule.points,U.fev.quad_rule.weights))
-#         ξ_x = ξ[1]
-#         ξ_y = ξ[2]
-#         # Update values
-#         evaluate_at_gauss_point!(U.components[1].fev,[ξ_x],[0 1],_Nx,_dNdx)
-#         evaluate_at_gauss_point!(U.components[2].fev,[ξ_y],[0 1],_Ny,_dNdy)
-
-#         Nx[1,[1,3]] = _Nx
-#         Nx[2,[2,4]] = _Nx
-#         Ny[1,[1,3]] = _Ny
-#         Ny[2,[2,4]] = _Ny
-
-#         dNdx[1,[1,3]] = _dNdx
-#         dNdx[2,[2,4]] = _dNdx
-#         dNdy[1,[1,3]] = _dNdy
-#         dNdy[2,[2,4]] = _dNdy
-
-
-#         NxNy = Nx'*(Ny*any)
-
-#         NNx[1,1] = NxNy[1]
-#         NNx[2,2] = NxNy[2]
-#         NNx[1,3] = NxNy[3]
-#         NNx[2,4] = NxNy[4]
-
-#         dNdxNy = dNdx'*(Ny*any)
-#         NxdNdy = Nx'*(dNdy*any)
-
-#         BBx[1,1] = dNdxNy[1]
-#         BBx[3,1] = NxdNdy[1]
-#         BBx[2,2] = NxdNdy[2]
-#         BBx[3,2] = dNdxNy[2]
-#         BBx[1,3] = dNdxNy[3]
-#         BBx[3,3] = NxdNdy[3]
-#         BBx[2,4] = NxdNdy[4]
-#         BBx[3,4] = dNdxNy[4]
-
-#         NyNx = Ny'*(Nx*anx)
-
-#         NNy[1,1] = NyNx[1]
-#         NNy[2,2] = NyNx[2]
-#         NNy[1,3] = NyNx[3]
-#         NNy[2,4] = NyNx[4]
-
-#         dNdyNx = dNdy'*(Nx*anx)
-#         NydNdx = Ny'*(dNdx*anx)
-
-#         BBy[1,1] = NydNdx[1]
-#         BBy[3,1] = dNdyNx[1]
-#         BBy[2,2] = dNdyNx[2]
-#         BBy[3,2] = NydNdx[2]
-#         BBy[1,3] = NydNdx[3]
-#         BBy[3,3] = dNdyNx[3]
-#         BBy[2,4] = dNdyNx[4]
-#         BBy[3,4] = NydNdx[4]
-
-#         ε = zeros(3)
-#         for m = 1:nModes(U) # Meh, måste man göra såhär :(
-#             m_dNdxNy = dNdx'*(Ny*ay[:,m])
-#             m_NxdNdy = Nx'*(dNdy*ay[:,m])
-
-#             m_BBx[1,1] = m_dNdxNy[1]
-#             m_BBx[3,1] = m_NxdNdy[1]
-#             m_BBx[2,2] = m_NxdNdy[2]
-#             m_BBx[3,2] = m_dNdxNy[2]
-#             m_BBx[1,3] = m_dNdxNy[3]
-#             m_BBx[3,3] = m_NxdNdy[3]
-#             m_BBx[2,4] = m_NxdNdy[4]
-#             m_BBx[3,4] = m_dNdxNy[4]
-
-#             ε += m_BBx*ax[:,m]
-#         end
-
-#         ε += BBx*anx # elelr BBy*ay, blir samma
-#         σ = D*ε
-
-
-#         dΩ = U.fev.detJdV[q_point]
-
-#         gx = BBx' * σ * dΩ
-#         gy = BBy' * σ * dΩ
-
-#         g += [gx; gy] # Här får man typ assemblera då istället om man har en unstructured mesh
-#     end
-
-#     return g
-
-# end
-
+    return gUλ
+end
