@@ -152,7 +152,7 @@ end
 
 function intfUλ{T}(an::Vector{T},fev::JuAFEM.FEValues)
 
-    gUλ = zeros(T,6) # Sorry Kristoffer, optimerar sen om det funkar!
+    gUλ = zeros(T,6)
     gU = zeros(T,4)
     gλ = zeros(T,2)
 
@@ -167,9 +167,9 @@ function intfUλ{T}(an::Vector{T},fev::JuAFEM.FEValues)
         Vx = Nx[1] * ax[2] + Nx[2] * ax[4] # Second component
 
         gU[1] = λ[1] * Nx[1] * Ux * dx
-        #gU[2] = λ[2] * Nx[1] * Vx * dx
+        gU[2] = λ[2] * Nx[1] * Vx * dx
         gU[3] = λ[1] * Nx[2] * Ux * dx
-        #gU[4] = λ[2] * Nx[2] * Vx * dx
+        gU[4] = λ[2] * Nx[2] * Vx * dx
 
         gλ[1] = 0.5 * Ux^2 * dx #-1 # Ska inte bara här ju, din noob
         gλ[2] = 0.5 * Vx^2 * dx #-1
