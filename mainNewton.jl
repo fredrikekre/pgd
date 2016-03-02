@@ -57,7 +57,7 @@ function mainNewton()
     fixed = setdiff(1:ndofs, free)
     n_free_dofs = length(free)
 
-    b = [1.0,1.0] # Body force
+    b = [1.0,0.0] # Body force
 
     n_modes = 2
     a = zeros(ndofs, n_modes)
