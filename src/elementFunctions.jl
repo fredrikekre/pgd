@@ -46,7 +46,8 @@ end
 
 import ForwardDiff.GradientNumber
 # The 8 here is the "chunk size" used
-Tgrad = ForwardDiff.GradientNumber{8, Float64, NTuple{8, Float64}}
+#Tgrad = ForwardDiff.GradientNumber{11, Float64, NTuple{11, Float64}}
+Tgrad = ForwardDiff.GradientNumber{11, Float64, Vector{Float64}}
 get_buffer{T <: GradientNumber}(buff_coll::BufferCollection, ::Type{T}) = buff_coll.buff_grad
 get_buffer{T}(buff_coll::BufferCollection, ::Type{T}) = buff_coll.buff_float
 
@@ -181,6 +182,7 @@ end
 # end
 
 function intf_AmplitudeFormulation{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFunction,D::Matrix,b::Vector=zeros(2))
+    println("JAG ÄR HÄR IAF...")
     α_n = an[1]
     ax_n = an[2:5] # Not general
     ay_n = an[6:9]
@@ -206,7 +208,7 @@ function intf_AmplitudeFormulation{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFu
 
     B_x = buff_coll.BBx  # B matrix for stiffness
     B_y = buff_coll.BBy
-
+    println("JAG ÄR HÄR IAF...")
     for (q_point, (ξ,w)) in enumerate(zip(U.fev.quad_rule.points,U.fev.quad_rule.weights))
         ξ_x = ξ[1]
         ξ_y = ξ[2]
@@ -217,6 +219,14 @@ function intf_AmplitudeFormulation{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFu
         evaluate_at_gauss_point!(U.components[1].fev,[ξ_x],ex_x,Nx,dNdx) # This is not really needed yet, but for generalizing in the future
         evaluate_at_gauss_point!(U.components[2].fev,[ξ_y],ex_y,Ny,dNdy)
 
+        println(N_x)
+        println(Nx)
+        println(Ny)
+        println(ay_n)
+        println(typeof(N_x))
+        println(typeof(Nx))
+        println(typeof(Ny))
+        println(typeof(ay_n))
         N_x[1,1] = Nx[1] * Ny[1] * ay_n[1] + Nx[1] * Ny[2] * ay_n[3]
         N_x[2,2] = Nx[1] * Ny[1] * ay_n[2] + Nx[1] * Ny[2] * ay_n[4]
         N_x[1,3] = Nx[2] * Ny[1] * ay_n[1] + Nx[2] * Ny[2] * ay_n[3]
@@ -302,6 +312,6 @@ function intf_AmplitudeFormulation{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFu
               gy + gλy;
               gλuv] # Maybe scale by dΩ here instead of every component
     end
-
+    println("JAG ÄR HÄR IAF...")
     return g
 end
