@@ -217,33 +217,33 @@ function intf_AmplitudeFormulation{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFu
         evaluate_at_gauss_point!(U.components[1].fev,[ξ_x],ex_x,Nx,dNdx) # This is not really needed yet, but for generalizing in the future
         evaluate_at_gauss_point!(U.components[2].fev,[ξ_y],ex_y,Ny,dNdy)
 
-        N_x[1,1] = Nx[1] * Ny[1] * any[1] + Nx[1] * Ny[2] * any[3]
-        N_x[2,2] = Nx[1] * Ny[1] * any[2] + Nx[1] * Ny[2] * any[4]
-        N_x[1,3] = Nx[2] * Ny[1] * any[1] + Nx[2] * Ny[2] * any[3]
-        N_x[2,4] = Nx[2] * Ny[1] * any[2] + Nx[2] * Ny[2] * any[4]
+        N_x[1,1] = Nx[1] * Ny[1] * ay_n[1] + Nx[1] * Ny[2] * ay_n[3]
+        N_x[2,2] = Nx[1] * Ny[1] * ay_n[2] + Nx[1] * Ny[2] * ay_n[4]
+        N_x[1,3] = Nx[2] * Ny[1] * ay_n[1] + Nx[2] * Ny[2] * ay_n[3]
+        N_x[2,4] = Nx[2] * Ny[1] * ay_n[2] + Nx[2] * Ny[2] * ay_n[4]
 
-        N_y[1,1] = Nx[1] * Ny[1] * anx[1] + Nx[2] * Ny[1] * anx[3]
-        N_y[2,2] = Nx[1] * Ny[1] * anx[2] + Nx[2] * Ny[1] * anx[4]
-        N_y[1,3] = Nx[1] * Ny[2] * anx[1] + Nx[2] * Ny[2] * anx[3]
-        N_y[2,4] = Nx[1] * Ny[2] * anx[2] + Nx[2] * Ny[2] * anx[4]
+        N_y[1,1] = Nx[1] * Ny[1] * ax_n[1] + Nx[2] * Ny[1] * ax_n[3]
+        N_y[2,2] = Nx[1] * Ny[1] * ax_n[2] + Nx[2] * Ny[1] * ax_n[4]
+        N_y[1,3] = Nx[1] * Ny[2] * ax_n[1] + Nx[2] * Ny[2] * ax_n[3]
+        N_y[2,4] = Nx[1] * Ny[2] * ax_n[2] + Nx[2] * Ny[2] * ax_n[4]
 
-        B_x[1,1] = dNdx[1] * Ny[1] * any[1] + dNdx[1] * Ny[2] * any[3]
-        B_x[3,1] = Nx[1] * dNdy[1] * any[1] + Nx[1] * dNdy[2] * any[3]
-        B_x[2,2] = Nx[1] * dNdy[1] * any[2] + Nx[1] * dNdy[2] * any[4]
-        B_x[3,2] = dNdx[1] * Ny[1] * any[2] + dNdx[1] * Ny[2] * any[4]
-        B_x[1,3] = dNdx[2] * Ny[1] * any[1] + dNdx[2] * Ny[2] * any[3]
-        B_x[3,3] = Nx[2] * dNdy[1] * any[1] + Nx[2] * dNdy[2] * any[3]
-        B_x[2,4] = Nx[2] * dNdy[1] * any[2] + Nx[2] * dNdy[2] * any[4]
-        B_x[3,4] = dNdx[2] * Ny[1] * any[2] + dNdx[2] * Ny[2] * any[4]
+        B_x[1,1] = dNdx[1] * Ny[1] * ay_n[1] + dNdx[1] * Ny[2] * ay_n[3]
+        B_x[3,1] = Nx[1] * dNdy[1] * ay_n[1] + Nx[1] * dNdy[2] * ay_n[3]
+        B_x[2,2] = Nx[1] * dNdy[1] * ay_n[2] + Nx[1] * dNdy[2] * ay_n[4]
+        B_x[3,2] = dNdx[1] * Ny[1] * ay_n[2] + dNdx[1] * Ny[2] * ay_n[4]
+        B_x[1,3] = dNdx[2] * Ny[1] * ay_n[1] + dNdx[2] * Ny[2] * ay_n[3]
+        B_x[3,3] = Nx[2] * dNdy[1] * ay_n[1] + Nx[2] * dNdy[2] * ay_n[3]
+        B_x[2,4] = Nx[2] * dNdy[1] * ay_n[2] + Nx[2] * dNdy[2] * ay_n[4]
+        B_x[3,4] = dNdx[2] * Ny[1] * ay_n[2] + dNdx[2] * Ny[2] * ay_n[4]
 
-        B_y[1,1] = dNdx[1] * Ny[1] * anx[1] + dNdx[2] * Ny[1] * anx[3]
-        B_y[3,1] = Nx[1] * dNdy[1] * anx[1] + Nx[2] * dNdy[1] * anx[3]
-        B_y[2,2] = Nx[1] * dNdy[1] * anx[2] + Nx[2] * dNdy[1] * anx[4]
-        B_y[3,2] = dNdx[1] * Ny[1] * anx[2] + dNdx[2] * Ny[1] * anx[4]
-        B_y[1,3] = dNdx[1] * Ny[2] * anx[1] + dNdx[2] * Ny[2] * anx[3]
-        B_y[3,3] = Nx[1] * dNdy[2] * anx[1] + Nx[2] * dNdy[2] * anx[3]
-        B_y[2,4] = Nx[1] * dNdy[2] * anx[2] + Nx[2] * dNdy[2] * anx[4]
-        B_y[3,4] = dNdx[1] * Ny[2] * anx[2] + dNdx[2] * Ny[2] * anx[4]
+        B_y[1,1] = dNdx[1] * Ny[1] * ax_n[1] + dNdx[2] * Ny[1] * ax_n[3]
+        B_y[3,1] = Nx[1] * dNdy[1] * ax_n[1] + Nx[2] * dNdy[1] * ax_n[3]
+        B_y[2,2] = Nx[1] * dNdy[1] * ax_n[2] + Nx[2] * dNdy[1] * ax_n[4]
+        B_y[3,2] = dNdx[1] * Ny[1] * ax_n[2] + dNdx[2] * Ny[1] * ax_n[4]
+        B_y[1,3] = dNdx[1] * Ny[2] * ax_n[1] + dNdx[2] * Ny[2] * ax_n[3]
+        B_y[3,3] = Nx[1] * dNdy[2] * ax_n[1] + Nx[2] * dNdy[2] * ax_n[3]
+        B_y[2,4] = Nx[1] * dNdy[2] * ax_n[2] + Nx[2] * dNdy[2] * ax_n[4]
+        B_y[3,4] = dNdx[1] * Ny[2] * ax_n[2] + dNdx[2] * Ny[2] * ax_n[4]
 
         ε = buff_coll.ε
         fill!(ε, 0.0)
@@ -264,7 +264,7 @@ function intf_AmplitudeFormulation{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFu
             ε += α[m] * ε_m
         end
 
-        ε_n = BBx * anx # Strain for last mode (without amplitude)
+        ε_n = B_x * ax_n # Strain for last mode (without amplitude)
         ε += α_n * ε_n # Add last mode strain with amplitude
         σ = D*ε
 
@@ -275,7 +275,7 @@ function intf_AmplitudeFormulation{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFu
 
         dΩ = U.fev.detJdV[q_point]
 
-        gα = (dot(ε_n,σ) - dot(ε,b)) * dΩ # α equation
+        gα = (dot(ε_n,σ) - dot(UU_n,b)) * dΩ # α equation
 
         # α taken away from these equations
         gx = (B_x' * σ - N_x' * b) * dΩ # x-mode equation

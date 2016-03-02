@@ -13,7 +13,7 @@ include("src/visualize.jl")
 function mainNewtonAmplitudeFormulation()
     xStart = 0; yStart = 0
     xEnd = 1; yEnd = 1
-    xnEl = 100; ynEl = 100
+    xnEl = 2; ynEl = 2
     xnElNodes = 2; ynElNodes = 2
     xnNodeDofs = 2; ynNodeDofs = 2
     xmesh = create_mesh1D(xStart,xEnd,xnEl,xnElNodes,xnNodeDofs)
@@ -21,7 +21,7 @@ function mainNewtonAmplitudeFormulation()
     xymesh = create_mesh2D(xStart,xEnd,yStart,yEnd,xnEl,ynEl,2)
 
     # Set up function components
-    function_space = JuAFEM.Lagrange{1,JuAFEM.Line}()
+    function_space = JuAFEM.Lagrange{1,JuAFEM.Square,1}()
     q_rule = JuAFEM.get_gaussrule(JuAFEM.Line(),1)
     fevx = JuAFEM.FEValues(Float64,q_rule,function_space)
     fevy = JuAFEM.FEValues(Float64,q_rule,function_space)
@@ -36,7 +36,11 @@ function mainNewtonAmplitudeFormulation()
 
     U = PGDFunction(2,2,xymesh,fevxy,[Ux, Uy])
     edof = create_edof(U)
-    λ_dofs = collect((maximum(edof)+1):(maximum(edof)+4)) # Add two Lagrange multipliers
+    # Temporary, add amplitude dof at the top and λ-dofs at the bottom
+    edof = [ones(edof[1,:]);
+            edof+1;
+            (maximum(edof)+1)*ones(edof[1,:]);
+            (maximum(edof)+2)*ones(edof[1,:])]
 
     # Material stiffness
     E = 1; ν = 0.3
@@ -52,14 +56,16 @@ function mainNewtonAmplitudeFormulation()
           U.components[1].mesh.nDofs+U.components[2].mesh.nDofs-1 0;
           U.components[1].mesh.nDofs+U.components[2].mesh.nDofs 0]
 
-    ndofs = maximum(edof) + length(λ_dofs)
+    bc += 1 # Since i added α as dof 1 LOL
+
+    ndofs = maximum(edof)
     free = setdiff(1:ndofs,bc[:,1])
     fixed = setdiff(1:ndofs, free)
     n_free_dofs = length(free)
 
-    b = [1.0,0.0] # Body force
+    b = [1.0,1.0] # Body force
 
-    n_modes = 2
+    n_modes = 1
     a = zeros(ndofs, n_modes)
     for modeItr = 1:n_modes
 
@@ -71,41 +77,31 @@ function mainNewtonAmplitudeFormulation()
             # Update the trial solution with the current solution
             # plus the trial step
             trial_solution[free] = full_solution[free] + Δan
-            globres = calc_globres(trial_solution, a,U,D,edof,λ_dofs,b, free)
+            globres = calc_globres(trial_solution, a,U,D,edof,b, free)
 
             copy!(fvec, globres)
         end
 
         function g!(Δan, gjac) # For NLsolve
             trial_solution[free] = full_solution[free] + Δan
-            K = calc_globK(trial_solution,a,U,D,edof,λ_dofs,b,free)
+            K = calc_globK(trial_solution,a,U,D,edof,b,free)
             # Workaround for copy! being slow on 0.4 for sparse matrices
             gjac.colptr = K.colptr
             gjac.rowval = K.rowval
             gjac.nzval = K.nzval
         end
 
-        # # Mode 1 from fixpoint solution (20x20 elements x ∈ [0,20], y ∈ [0,20])
-        # aX_fix = readdlm("aX.txt")[:]
-        # aY_fix = readdlm("aY.txt")[:]
-
-        # u0_fix = [aX_fix; aY_fix]
-
-        
-        # g = calc_globres(u0_fix,a,U,D,edof,b,free)
-        # println("Residual of fix-point solution = $(maximum(abs(g)))")
-
         # Initial guess
         # We only guess on the unconstrained nodes, the others will not be
         # changed during the newton iterations
-        Δan_0 = 1.1*ones(Float64, n_free_dofs);
+        Δan_0 = 0.1*ones(Float64, n_free_dofs);
 
         # Total solution need to satisfy boundary conditions so we enforce that here
         full_solution[fixed] = bc[:,2]
 
         df = DifferentiableSparseMultivariateFunction(f!,g!)
 
-        res = nlsolve(df, Δan_0, ftol = 1e-7, iterations=10000, show_trace = true, method = :trust_region)
+        res = nlsolve(df, Δan_0, ftol = 1e-7, iterations=10, show_trace = true, method = :trust_region)
         if !converged(res)
             error("Global equation did not converge")
         end
@@ -113,10 +109,10 @@ function mainNewtonAmplitudeFormulation()
         # The total solution after the Newtons step is the previous plus
         # the solution to the Newton iterations.
         full_solution[free] += res.zero
-        a[:,modeItr] = full_solution*0.5;
+        a[:,modeItr] = full_solution;
         U.modes += 1
     end
-    a[:,2] *= 2.0
+
     return a, U
 end
 
@@ -124,7 +120,7 @@ o = mainNewtonAmplitudeFormulation()
 
 
 
-visualize(o...)
+# visualize(o...)
 
 
 
