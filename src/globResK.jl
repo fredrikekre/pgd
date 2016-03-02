@@ -62,9 +62,10 @@ function calc_globK{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Ma
         intf_AmplitudeFormulation_closure(an) = intf_AmplitudeFormulation(an,a[m,:],x,U,D,b)
         println("Done making the closure func.")
 
-        kefunc = ForwardDiff.jacobian(intf_AmplitudeFormulation_closure, cache=cache)
+        Ke = ForwardDiff.jacobian(intf_AmplitudeFormulation_closure, an[m])
         println("Done making kefunc")
-        Ke = kefunc(an[m])
+        println(an[m])
+        #Ke = kefunc(an[m])
         println(Ke)
 
         JuAFEM.assemble(m,_K,Ke)

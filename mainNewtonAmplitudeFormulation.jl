@@ -21,7 +21,7 @@ function mainNewtonAmplitudeFormulation()
     xymesh = create_mesh2D(xStart,xEnd,yStart,yEnd,xnEl,ynEl,2)
 
     # Set up function components
-    function_space = JuAFEM.Lagrange{1,JuAFEM.Square,1}()
+    function_space = JuAFEM.Lagrange{1,JuAFEM.Line}()
     q_rule = JuAFEM.get_gaussrule(JuAFEM.Line(),1)
     fevx = JuAFEM.FEValues(Float64,q_rule,function_space)
     fevy = JuAFEM.FEValues(Float64,q_rule,function_space)
