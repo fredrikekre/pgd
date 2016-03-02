@@ -48,7 +48,6 @@ end
 
 function calc_globK{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Matrix,b::Vector, free)
     # Calculate global tangent stiffness matrix, K
-    println("Inne i calc_globK")
 
     _K = JuAFEM.start_assemble()
     cache = ForwardDiffCache()
@@ -57,16 +56,12 @@ function calc_globK{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Ma
         x = [U.mesh.ex[:,i] U.mesh.ey[:,i]]'
         JuAFEM.reinit!(U.fev,x)
         m = edof[:,i]
-        println(m)
 
         intf_AmplitudeFormulation_closure(an) = intf_AmplitudeFormulation(an,a[m,:],x,U,D,b)
-        println("Done making the closure func.")
 
-        Ke = ForwardDiff.jacobian(intf_AmplitudeFormulation_closure, an[m])
-        println("Done making kefunc")
-        println(an[m])
-        #Ke = kefunc(an[m])
-        println(Ke)
+        kefunc = ForwardDiff.jacobian(intf_AmplitudeFormulation_closure, cache=cache)
+
+        Ke = kefunc(an[m])
 
         JuAFEM.assemble(m,_K,Ke)
     end
@@ -107,8 +102,6 @@ function calc_globK{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Ma
     # ###########################################
 
     K = JuAFEM.end_assemble(_K)
-    println("Determinanten av K[free,free] = $(det(K[free,free]))")
-    error()
 
     return K[free, free]
 end

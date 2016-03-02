@@ -13,7 +13,7 @@ include("src/visualize.jl")
 function mainNewtonAmplitudeFormulation()
     xStart = 0; yStart = 0
     xEnd = 1; yEnd = 1
-    xnEl = 2; ynEl = 2
+    xnEl = 20; ynEl = 20
     xnElNodes = 2; ynElNodes = 2
     xnNodeDofs = 2; ynNodeDofs = 2
     xmesh = create_mesh1D(xStart,xEnd,xnEl,xnElNodes,xnNodeDofs)
@@ -39,8 +39,8 @@ function mainNewtonAmplitudeFormulation()
     # Temporary, add amplitude dof at the top and λ-dofs at the bottom
     edof = [ones(edof[1,:]);
             edof+1;
-            (maximum(edof)+1)*ones(edof[1,:]);
-            (maximum(edof)+2)*ones(edof[1,:])]
+            (maximum(edof)+2)*ones(edof[1,:]);
+            (maximum(edof)+3)*ones(edof[1,:])]
 
     # Material stiffness
     E = 1; ν = 0.3
@@ -56,10 +56,10 @@ function mainNewtonAmplitudeFormulation()
           U.components[1].mesh.nDofs+U.components[2].mesh.nDofs-1 0;
           U.components[1].mesh.nDofs+U.components[2].mesh.nDofs 0]
 
-    bc += 1 # Since i added α as dof 1 LOL
+    bc[:,1] += 1 # Since i added α as dof 1 LOL
 
     ndofs = maximum(edof)
-    free = setdiff(1:ndofs,bc[:,1])
+    free = setdiff(1:ndofs,[bc[:,1]; maximum(edof)-1; maximum(edof)])
     fixed = setdiff(1:ndofs, free)
     n_free_dofs = length(free)
 
@@ -94,16 +94,16 @@ function mainNewtonAmplitudeFormulation()
         # Initial guess
         # We only guess on the unconstrained nodes, the others will not be
         # changed during the newton iterations
-        Δan_0 = 0.1*ones(Float64, n_free_dofs);
+        Δan_0 = 1.1*ones(Float64, n_free_dofs);
 
         # Total solution need to satisfy boundary conditions so we enforce that here
-        full_solution[fixed] = bc[:,2]
+        full_solution[bc[:,1]] = bc[:,2]
 
         df = DifferentiableSparseMultivariateFunction(f!,g!)
 
-        res = nlsolve(df, Δan_0, ftol = 1e-7, iterations=10, show_trace = true, method = :trust_region)
+        res = nlsolve(df, Δan_0, ftol = 1e-7, iterations=100, show_trace = true, method = :trust_region)
         if !converged(res)
-            error("Global equation did not converge")
+            # error("Global equation did not converge")
         end
 
         # The total solution after the Newtons step is the previous plus
