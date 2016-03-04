@@ -11,14 +11,28 @@ function visualize(a,U)
     Uy_dof = (U.components[1].mesh.nDofs+1):2:(U.components[1].mesh.nDofs+U.components[1].mesh.nDofs-1)
     Vy_dof = (U.components[1].mesh.nDofs+2):2:(U.components[1].mesh.nDofs+U.components[1].mesh.nDofs)
 
+    # Since I used dof #1 as amplitude
+    println("Amplitudes of u: $(a[1,:])")
+    println("Amplitudes of v: $(a[2,:])")
+    Ux_dof += 2
+    Vx_dof += 2
+    Uy_dof += 2
+    Vy_dof += 2
+    α = a[1,:]
+
     Ux = a[Ux_dof,:]
     Vx = a[Vx_dof,:]
 
     Uy = a[Uy_dof,:]
     Vy = a[Vy_dof,:]
 
-    u = Ux*Uy'
-    v = Vx*Vy'
+    u = zeros(Ux[:,1] * Uy[:,1]')
+    v = zeros(Vx[:,1] * Vy[:,1]')
+
+    for m = 1:nModes
+        u += α[m] * Ux[:,m] * Uy[:,m]'
+        v += α[m] * Vx[:,m] * Vy[:,m]'
+    end
 
     for i = 1:nModes
         PyPlot.figure(1)
@@ -68,11 +82,11 @@ function visualize(a,U)
     Y = copy(X); Z = copy(X)
     X[:,:,1] = x
     Y[:,:,1] = y
-    vtkfile = JuAFEM.vtk_grid("PGD_disp_newton", X,Y,Z)
+    vtkfile = JuAFEM.vtk_grid("displacement_newton_amplitude", X,Y,Z)
     vtkdisp = zeros(3,U.components[1].mesh.nEl+1,U.components[2].mesh.nEl+1,1)
     vtkdisp[1,:,:,1] = u
     vtkdisp[2,:,:,1] = v
-    JuAFEM.vtk_point_data(vtkfile, vtkdisp, "displacement_newton")
+    JuAFEM.vtk_point_data(vtkfile, vtkdisp, "displacement_newton_amplitude")
     # #println("Norm of error u = $(norm(u-uFEM1000)/norm(uFEM1000))")
     # #println("Norm of error v = $(norm(v-vFEM1000)/norm(vFEM1000))")
 

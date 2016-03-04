@@ -13,7 +13,7 @@ include("src/visualize.jl")
 function mainNewtonAmplitudeFormulation()
     xStart = 0; yStart = 0
     xEnd = 1; yEnd = 1
-    xnEl = 20; ynEl = 20
+    xnEl = 100; ynEl = 100
     xnElNodes = 2; ynElNodes = 2
     xnNodeDofs = 2; ynNodeDofs = 2
     xmesh = create_mesh1D(xStart,xEnd,xnEl,xnElNodes,xnNodeDofs)
@@ -21,8 +21,8 @@ function mainNewtonAmplitudeFormulation()
     xymesh = create_mesh2D(xStart,xEnd,yStart,yEnd,xnEl,ynEl,2)
 
     # Set up function components
-    function_space = JuAFEM.Lagrange{1,JuAFEM.Line}()
-    q_rule = JuAFEM.get_gaussrule(JuAFEM.Line(),1)
+    function_space = JuAFEM.Lagrange{1,JuAFEM.Square,1}()
+    q_rule = JuAFEM.get_gaussrule(JuAFEM.Dim{1},JuAFEM.Square(),2)
     fevx = JuAFEM.FEValues(Float64,q_rule,function_space)
     fevy = JuAFEM.FEValues(Float64,q_rule,function_space)
 
@@ -30,17 +30,19 @@ function mainNewtonAmplitudeFormulation()
     Uy = PGDComponent(1,ymesh,fevy)
 
     # Set up PGDfunction
-    function_space = JuAFEM.Lagrange{1,JuAFEM.Square}()
-    q_rule = JuAFEM.get_gaussrule(JuAFEM.Square(),2)
+    function_space = JuAFEM.Lagrange{2,JuAFEM.Square,1}()
+    q_rule = JuAFEM.get_gaussrule(JuAFEM.Dim{2},JuAFEM.Square(),2)
     fevxy = JuAFEM.FEValues(Float64,q_rule,function_space)
 
     U = PGDFunction(2,2,xymesh,fevxy,[Ux, Uy])
     edof = create_edof(U)
+
     # Temporary, add amplitude dof at the top and λ-dofs at the bottom
-    edof = [ones(edof[1,:]);
-            edof+1;
-            (maximum(edof)+2)*ones(edof[1,:]);
-            (maximum(edof)+3)*ones(edof[1,:])]
+    edof = [ones(edof[1,:]); # u amplitude (same for all elements)
+            2*ones(edof[1,:]); # v amplitude
+            edof+2; # usual edof matrix but +2 since dof 1,2 = amplitude
+            (maximum(edof)+3)*ones(edof[1,:]); # First λ, same for all elements
+            (maximum(edof)+4)*ones(edof[1,:])] # Second λ, same for all elements
 
     # Material stiffness
     E = 1; ν = 0.3
@@ -56,10 +58,10 @@ function mainNewtonAmplitudeFormulation()
           U.components[1].mesh.nDofs+U.components[2].mesh.nDofs-1 0;
           U.components[1].mesh.nDofs+U.components[2].mesh.nDofs 0]
 
-    bc[:,1] += 1 # Since i added α as dof 1 LOL
+    bc[:,1] += 2 # Since i added α as dof 1 and 2 LOL
 
     ndofs = maximum(edof)
-    free = setdiff(1:ndofs,[bc[:,1]; maximum(edof)-1; maximum(edof)])
+    free = setdiff(1:ndofs,bc[:,1])
     fixed = setdiff(1:ndofs, free)
     n_free_dofs = length(free)
 
@@ -85,6 +87,9 @@ function mainNewtonAmplitudeFormulation()
         function g!(Δan, gjac) # For NLsolve
             trial_solution[free] = full_solution[free] + Δan
             K = calc_globK(trial_solution,a,U,D,edof,b,free)
+            # println(full(K))
+            # println(det(K))
+            # error()
             # Workaround for copy! being slow on 0.4 for sparse matrices
             gjac.colptr = K.colptr
             gjac.rowval = K.rowval
@@ -94,14 +99,14 @@ function mainNewtonAmplitudeFormulation()
         # Initial guess
         # We only guess on the unconstrained nodes, the others will not be
         # changed during the newton iterations
-        Δan_0 = 1.1*ones(Float64, n_free_dofs);
+        Δan_0 = 0.1*ones(Float64, n_free_dofs);
 
         # Total solution need to satisfy boundary conditions so we enforce that here
         full_solution[bc[:,1]] = bc[:,2]
 
         df = DifferentiableSparseMultivariateFunction(f!,g!)
 
-        res = nlsolve(df, Δan_0, ftol = 1e-7, iterations=100, show_trace = true, method = :trust_region)
+        res = nlsolve(df, Δan_0, ftol = 1e-7, iterations=1000, show_trace = true, method = :trust_region)
         if !converged(res)
             # error("Global equation did not converge")
         end
