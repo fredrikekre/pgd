@@ -88,6 +88,7 @@ function intf{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFunction,D::Matrix,b::V
         evaluate_at_gauss_point!(U.components[1].fev,[ξ_x],ex_x,Nx,dNdx)
         evaluate_at_gauss_point!(U.components[2].fev,[ξ_y],ex_y,Ny,dNdy)
 
+        # TODO: Simplify these expressions, potentially using ContMechTensors.jl somehow and include the Hadamard product.
         NNx[1,1] = Nx[1] * Ny[1] * any[1] + Nx[1] * Ny[2] * any[3]
         NNx[2,2] = Nx[1] * Ny[1] * any[2] + Nx[1] * Ny[2] * any[4]
         NNx[1,3] = Nx[2] * Ny[1] * any[1] + Nx[2] * Ny[2] * any[3]
@@ -144,7 +145,8 @@ function intf{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFunction,D::Matrix,b::V
         gx = (BBx' * σ - NNx' * b) * dΩ
         gy = (BBy' * σ - NNy' * b) * dΩ
 
-        g += [gx; gy] # Här får man typ assemblera då istället om man har en unstructured mesh
+        g += [gx;
+              gy] # Här får man typ assemblera då istället om man har en unstructured mesh
     end
 
     return g
