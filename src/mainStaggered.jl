@@ -36,7 +36,9 @@ function mainNewton()
 
     U = PGDFunction(2,2,xymesh,fevxy,[Ux, Uy])
     edof = create_edof(U)
-    λ_dofs = collect((maximum(edof)+1):(maximum(edof)+4)) # Add two Lagrange multipliers
+
+    x_mode_dofs = collect(1:U.components[1].mesh.nDofs)
+    y_mode_dofs = collect((U.components[1].mesh.nDofs+1):(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs) + 1
 
     # Material stiffness
     E = 1; ν = 0.3
