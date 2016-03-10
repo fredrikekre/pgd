@@ -51,6 +51,15 @@ function create_edof(gFunc::PGDFunction)
     return edof
 end
 
+function create_edof_heat(gFunc::PGDFunction)
+    gnEl = gFunc.mesh.nEl # Number of elements in gov. mesh
+    edof = zeros(Int64,4,gnEl)
+    edof[1:2,:] = hcat([gFunc.components[1].mesh.edof for i in 1:gFunc.components[2].mesh.nEl]...)
+    edof[3:4,:] = reshape(vcat([gFunc.components[2].mesh.edof for i in 1:gFunc.components[1].mesh.nEl]...),(2,gnEl))
+    edof[3:4,:] += gFunc.components[1].mesh.nDofs
+    return edof
+end
+
 function evaluate_at_gauss_point!(fe_v::JuAFEM.FEValues, ξ::Vector, x::Matrix, N::Vector, dNdx::Matrix)
     # Evaluates N and dNdx at a speciefied Gauss-point
 

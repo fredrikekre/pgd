@@ -229,23 +229,23 @@ function intf_AmplitudeFormulation{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFu
         # N_x[1,3] = Nx[2] * Ny[1] * ay_n[1] + Nx[2] * Ny[2] * ay_n[3]
         # N_x[2,4] = Nx[2] * Ny[1] * ay_n[2] + Nx[2] * Ny[2] * ay_n[4]
 
-        N_x[1,1] = α_un * Nx[1] * (Ny[1] * ay[1] + Ny[2] * ay[3])
-        N_x[2,2] = α_vn * Nx[1] * (Ny[1] * ay[2] + Ny[2] * ay[4])
-        N_x[1,3] = α_un * Nx[2] * (Ny[1] * ay[1] + Ny[2] * ay[3])
-        N_x[2,4] = α_vn * Nx[2] * (Ny[1] * ay[2] + Ny[2] * ay[4])
+        N_x[1,1] = α_un * Nx[1] * (Ny[1] * ay_n[1] + Ny[2] * ay_n[3])
+        N_x[2,2] = α_vn * Nx[1] * (Ny[1] * ay_n[2] + Ny[2] * ay_n[4])
+        N_x[1,3] = α_un * Nx[2] * (Ny[1] * ay_n[1] + Ny[2] * ay_n[3])
+        N_x[2,4] = α_vn * Nx[2] * (Ny[1] * ay_n[2] + Ny[2] * ay_n[4])
 
         # N_y[1,1] = Nx[1] * Ny[1] * ax_n[1] + Nx[2] * Ny[1] * ax_n[3]
         # N_y[2,2] = Nx[1] * Ny[1] * ax_n[2] + Nx[2] * Ny[1] * ax_n[4]
         # N_y[1,3] = Nx[1] * Ny[2] * ax_n[1] + Nx[2] * Ny[2] * ax_n[3]
         # N_y[2,4] = Nx[1] * Ny[2] * ax_n[2] + Nx[2] * Ny[2] * ax_n[4]
 
-        N_y[1,1] = α_un * Ny[1] * (Nx[1] * ax[1] + Nx[2] * ax[3])
-        N_y[2,2] = α_vn * Ny[1] * (Nx[1] * ax[2] + Nx[2] * ax[4])
-        N_y[1,3] = α_un * Ny[2] * (Nx[1] * ax[1] + Nx[2] * ax[3])
-        N_y[2,4] = α_vn * Ny[2] * (Nx[1] * ax[2] + Nx[2] * ax[4])
+        N_y[1,1] = α_un * Ny[1] * (Nx[1] * ax_n[1] + Nx[2] * ax_n[3])
+        N_y[2,2] = α_vn * Ny[1] * (Nx[1] * ax_n[2] + Nx[2] * ax_n[4])
+        N_y[1,3] = α_un * Ny[2] * (Nx[1] * ax_n[1] + Nx[2] * ax_n[3])
+        N_y[2,4] = α_vn * Ny[2] * (Nx[1] * ax_n[2] + Nx[2] * ax_n[4])
 
-        N_α[1,1] = (Nx[1] * ax[1] + Nx[2] * ax[3]) * (Ny[1] * ay[1] + Ny[2] * ay[3])
-        N_α[2,2] = (Nx[1] * ax[2] + Nx[2] * ax[4]) * (Ny[1] * ay[2] + Ny[2] * ay[4])
+        N_α[1,1] = (Nx[1] * ax_n[1] + Nx[2] * ax_n[3]) * (Ny[1] * ay_n[1] + Ny[2] * ay_n[3])
+        N_α[2,2] = (Nx[1] * ax_n[2] + Nx[2] * ax_n[4]) * (Ny[1] * ay_n[2] + Ny[2] * ay_n[4])
 
         # B_x[1,1] = dNdx[1] * Ny[1] * ay_n[1] + dNdx[1] * Ny[2] * ay_n[3]
         # B_x[3,1] = Nx[1] * dNdy[1] * ay_n[1] + Nx[1] * dNdy[2] * ay_n[3]
@@ -256,14 +256,14 @@ function intf_AmplitudeFormulation{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFu
         # B_x[2,4] = Nx[2] * dNdy[1] * ay_n[2] + Nx[2] * dNdy[2] * ay_n[4]
         # B_x[3,4] = dNdx[2] * Ny[1] * ay_n[2] + dNdx[2] * Ny[2] * ay_n[4]
 
-        B_x[1,1] = α_un * dNdx[1] * (Ny[1] * ay[1] + Ny[2] * ay[3])
+        B_x[1,1] = α_un * dNdx[1] * (Ny[1] * ay_n[1] + Ny[2] * ay_n[3])
         B_x[3,1] = α_un * Nx[1] * (ay[1] * dNdy[1] + ay[3] * dNdy[2])
         B_x[2,2] = α_vn * Nx[1] * (ay[2] * dNdy[1] + ay[4] * dNdy[2])
-        B_x[3,2] = α_vn * dNdx[1] * (Ny[1] * ay[2] + Ny[2] * ay[4])
-        B_x[1,3] = α_un * dNdx[2] * (Ny[1] * ay[1] + Ny[2] * ay[3])
-        B_x[3,3] = α_un * Nx[2] * (ay[1] * dNdy[1] + ay[3] * dNdy[2])
-        B_x[2,4] = α_vn * Nx[2] * (ay[2] * dNdy[1] + ay[4] * dNdy[2])
-        B_x[3,4] = α_vn * dNdx[2] * (Ny[1] * ay[2] + Ny[2] * ay[4])
+        B_x[3,2] = α_vn * dNdx[1] * (Ny[1] * ay_n[2] + Ny[2] * ay_n[4])
+        B_x[1,3] = α_un * dNdx[2] * (Ny[1] * ay_n[1] + Ny[2] * ay_n[3])
+        B_x[3,3] = α_un * Nx[2] * (ay_n[1] * dNdy[1] + ay_n[3] * dNdy[2])
+        B_x[2,4] = α_vn * Nx[2] * (ay_n[2] * dNdy[1] + ay_n[4] * dNdy[2])
+        B_x[3,4] = α_vn * dNdx[2] * (Ny[1] * ay_n[2] + Ny[2] * ay_n[4])
 
         # B_y[1,1] = dNdx[1] * Ny[1] * ax_n[1] + dNdx[2] * Ny[1] * ax_n[3]
         # B_y[3,1] = Nx[1] * dNdy[1] * ax_n[1] + Nx[2] * dNdy[1] * ax_n[3]
@@ -274,20 +274,20 @@ function intf_AmplitudeFormulation{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFu
         # B_y[2,4] = Nx[1] * dNdy[2] * ax_n[2] + Nx[2] * dNdy[2] * ax_n[4]
         # B_y[3,4] = dNdx[1] * Ny[2] * ax_n[2] + dNdx[2] * Ny[2] * ax_n[4]
 
-        B_y[1,1] = α_un * Ny[1] * (dNdx[1] * ax[1] + dNdx[2] * ax[3])
-        B_y[3,1] = α_un * dNdy[1] * (Nx[1] * ax[1] + Nx[2] * ax[3])
-        B_y[2,2] = α_vn * dNdy[1] * (Nx[1] * ax[2] + Nx[2] * ax[4])
-        B_y[3,2] = α_vn * Ny[1] * (ax[2] * dNdx[1] + ax[4] * dNdx[2])
-        B_y[1,3] = α_un * Ny[2] * (ax[1] * dNdx[1] + ax[3] * dNdx[2])
-        B_y[3,3] = α_un * dNdy[2] * (Nx[1] * ax[1] + Nx[2] * ax[3])
-        B_y[2,4] = α_vn * dNdy[2] * (Nx[1] * ax[2] + Nx[2] * ax[4])
-        B_y[3,4] = α_vn * Ny[2] * (ax[2]*dNdx[1] + ax[4]*dNdx[2])
+        B_y[1,1] = α_un * Ny[1] * (dNdx[1] * ax_n[1] + dNdx[2] * ax_n[3])
+        B_y[3,1] = α_un * dNdy[1] * (Nx[1] * ax_n[1] + Nx[2] * ax_n[3])
+        B_y[2,2] = α_vn * dNdy[1] * (Nx[1] * ax_n[2] + Nx[2] * ax_n[4])
+        B_y[3,2] = α_vn * Ny[1] * (ax_n[2] * dNdx[1] + ax_n[4] * dNdx[2])
+        B_y[1,3] = α_un * Ny[2] * (ax_n[1] * dNdx[1] + ax_n[3] * dNdx[2])
+        B_y[3,3] = α_un * dNdy[2] * (Nx[1] * ax_n[1] + Nx[2] * ax_n[3])
+        B_y[2,4] = α_vn * dNdy[2] * (Nx[1] * ax_n[2] + Nx[2] * ax_n[4])
+        B_y[3,4] = α_vn * Ny[2] * (ax_n[2]*dNdx[1] + ax_n[4]*dNdx[2])
 
         # TODO: Clean up this mess, its probably just a matrix multiplication or somethign
-        B_α[1,1] = (Ny[1] * ay[1] + Ny[2] * ay[3]) * (ax[1] * dNdx[1] + ax[3] * dNdx[2])
-        B_α[3,1] = (Nx[1] * ax[1] + Nx[2] * ax[3]) * (ay[1] * dNdy[1] + ay[3] * dNdy[2])
-        B_α[2,2] = (Nx[1] * ax[2] + Nx[2] * ax[4]) * (ay[2] * dNdy[1] + ay[4] * dNdy[2])
-        B_α[3,2] = (Ny[1] * ay[2] + Ny[2] * ay[4]) * (ax[2] * dNdx[1] + ax[4] * dNdx[2])
+        B_α[1,1] = (Ny[1] * ay_n[1] + Ny[2] * ay_n[3]) * (ax_n[1] * dNdx[1] + ax_n[3] * dNdx[2])
+        B_α[3,1] = (Nx[1] * ax_n[1] + Nx[2] * ax_n[3]) * (ay_n[1] * dNdy[1] + ay_n[3] * dNdy[2])
+        B_α[2,2] = (Nx[1] * ax_n[2] + Nx[2] * ax_n[4]) * (ay_n[2] * dNdy[1] + ay_n[4] * dNdy[2])
+        B_α[3,2] = (Ny[1] * ay_n[2] + Ny[2] * ay_n[4]) * (ax_n[2] * dNdx[1] + ax_n[4] * dNdx[2])
 
 
 
