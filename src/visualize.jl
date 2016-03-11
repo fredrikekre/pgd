@@ -14,8 +14,15 @@ function visualize(a,U)
     Ux = a[Ux_dof,:]
     Vx = a[Vx_dof,:]
 
+
     Uy = a[Uy_dof,:]
     Vy = a[Vy_dof,:]
+
+    # println("Orthogonality for Ux: 2⋅1 = $(dot(Ux[:,2],Ux[:,1])), 3⋅1 = $(dot(Ux[:,3],Ux[:,1])), 4⋅1 = $(dot(Ux[:,4],Ux[:,1])), 5⋅1 = $(dot(Ux[:,5],Ux[:,1]))")
+    # println("Orthogonality for Vx: 2⋅1 = $(dot(Vx[:,2],Vx[:,1])), 3⋅1 = $(dot(Vx[:,3],Vx[:,1])), 4⋅1 = $(dot(Vx[:,4],Vx[:,1])), 5⋅1 = $(dot(Vx[:,5],Vx[:,1]))")
+    # println("Orthogonality for Uy: 2⋅1 = $(dot(Uy[:,2],Uy[:,1])), 3⋅1 = $(dot(Uy[:,3],Uy[:,1])), 4⋅1 = $(dot(Uy[:,4],Uy[:,1])), 5⋅1 = $(dot(Uy[:,5],Uy[:,1]))")
+    # println("Orthogonality for Vy: 2⋅1 = $(dot(Vy[:,2],Vy[:,1])), 3⋅1 = $(dot(Vy[:,3],Vy[:,1])), 4⋅1 = $(dot(Vy[:,4],Vy[:,1])), 5⋅1 = $(dot(Vy[:,5],Vy[:,1]))")
+
 
     u = Ux*Uy'
     v = Vx*Vy'
@@ -68,11 +75,11 @@ function visualize(a,U)
     Y = copy(X); Z = copy(X)
     X[:,:,1] = x
     Y[:,:,1] = y
-    vtkfile = JuAFEM.vtk_grid("PGD_disp_newton", X,Y,Z)
+    vtkfile = JuAFEM.vtk_grid("PGD_displacement_staggered", X,Y,Z)
     vtkdisp = zeros(3,U.components[1].mesh.nEl+1,U.components[2].mesh.nEl+1,1)
     vtkdisp[1,:,:,1] = u
     vtkdisp[2,:,:,1] = v
-    JuAFEM.vtk_point_data(vtkfile, vtkdisp, "displacement_newton")
+    JuAFEM.vtk_point_data(vtkfile, vtkdisp, "displacement_staggered")
     # #println("Norm of error u = $(norm(u-uFEM1000)/norm(uFEM1000))")
     # #println("Norm of error v = $(norm(v-vFEM1000)/norm(vFEM1000))")
 

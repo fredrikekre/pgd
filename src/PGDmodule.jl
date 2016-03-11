@@ -5,10 +5,10 @@
 
 # TODO: Maybe split the mesh from the components
 
-type PGDComponent{T, dim_comp, functionspace_comp} #<: PGDcomponent # One component function of the PGD
+type PGDComponent{dim_comp, T, functionspace_comp} #<: PGDcomponent # One component function of the PGD
     dim::Int
     mesh::mesh1D
-    fev::JuAFEM.FEValues{T, dim_comp, functionspace_comp}
+    fev::JuAFEM.FEValues{dim_comp, T, functionspace_comp}
 end
 # Shold have gauss rules etc
 
@@ -16,8 +16,8 @@ type PGDFunction{T, dim_comp, dim, functionspace_comp, functionspace_main}
     dim::Int # Number of dimensions
     nComp::Int # Number of components
     mesh::mesh2D # Governing mesh
-    fev::JuAFEM.FEValues{T, dim, functionspace_main}
-    components::Array{PGDComponent{T, dim_comp, functionspace_comp}} # Array with the different components
+    fev::JuAFEM.FEValues{dim, T, functionspace_main}
+    components::Array{PGDComponent{dim_comp, T, functionspace_comp}} # Array with the different components
     link::Vector{Matrix{Int}}
     modes::Int
 end

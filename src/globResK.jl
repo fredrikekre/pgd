@@ -1,99 +1,90 @@
-function calc_globres{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Matrix,λ_dofs::Vector,b::Vector,free)
+function calc_globres{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Matrix,b::Vector,free)
     # Calculate global residual, g_glob
-    ndofs = maximum(edof)+length(λ_dofs)
+    ndofs = maximum(edof)
     g_glob = zeros(T,ndofs)
+
+    stiffel = [collect((50*15+16):(50*15+35));
+               collect((50*16+16):(50*16+35));
+               collect((50*17+16):(50*17+35));
+               collect((50*18+16):(50*18+35));
+               collect((50*19+16):(50*19+35));
+               collect((50*20+16):(50*20+35));
+               collect((50*21+16):(50*21+35));
+               collect((50*22+16):(50*22+35));
+               collect((50*23+16):(50*23+35));
+               collect((50*24+16):(50*24+35));
+               collect((50*25+16):(50*25+35));
+               collect((50*26+16):(50*26+35));
+               collect((50*27+16):(50*27+35));
+               collect((50*28+16):(50*28+35));
+               collect((50*29+16):(50*29+35));
+               collect((50*30+16):(50*30+35));
+               collect((50*31+16):(50*31+35));
+               collect((50*32+16):(50*32+35));
+               collect((50*33+16):(50*33+35));
+               collect((50*34+16):(50*34+35));
+               collect((50*35+16):(50*35+35))]
+
+
+    elstiff = ones(U.mesh.nEl)
+    elstiff[stiffel] = 100
+
 
     for i = 1:U.mesh.nEl
         x = [U.mesh.ex[:,i] U.mesh.ey[:,i]]'
         JuAFEM.reinit!(U.fev,x)
         m = edof[:,i]
-        ge = intf(an[m],a[m,:],x,U,D,b)
+        ge = intf(an[m],a[m,:],x,U,D*elstiff[i],b)
 
         g_glob[m] += ge
     end
 
-    #########################################
-    # Added for Lagrange multiplier for Ux
-    for i =1:U.components[1].mesh.nEl
-        x = U.components[1].mesh.ex[:,i]
-
-        JuAFEM.reinit!(U.components[1].fev,x')
-        edofcomponent = U.components[1].mesh.edof # Dangerous but works for first component (Need to add some connection between compnent mesh and global dofs)
-        m = edofcomponent[:,i]
-        mλ = [m[1:4]; λ_dofs[1:2]] # Not very nice, only works for first component
-
-        gUλe = intfUλ(an[mλ],U.components[1].fev)
-        g_glob[mλ] += gUλe
-    end
-    for i =1:U.components[2].mesh.nEl
-        x = U.components[2].mesh.ex[:,i]
-
-        JuAFEM.reinit!(U.components[2].fev,x')
-        edofcomponent = U.components[2].mesh.edof # Dangerous but works for first component (Need to add some connection between compnent mesh and global dofs)
-        m = edofcomponent[:,i] + U.components[1].mesh.nDofs
-        mλ = [m[1:4]; λ_dofs[3:4]] # Not very nice, only works for first component
-
-        gUλe = intfUλ(an[mλ],U.components[2].fev)
-        g_glob[mλ] += gUλe
-    end
-    g_glob[λ_dofs] -= 1 # Since the norm of those modes should be 1
-    #########################################
-
     return g_glob[free]
 end
 
-function calc_globK{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Matrix,λ_dofs,b::Vector, free)
+function calc_globK{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Matrix,b::Vector, free)
     # Calculate global tangent stiffness matrix, K
 
     _K = JuAFEM.start_assemble()
     cache = ForwardDiffCache()
 
+    stiffel = [collect((50*15+16):(50*15+35));
+               collect((50*16+16):(50*16+35));
+               collect((50*17+16):(50*17+35));
+               collect((50*18+16):(50*18+35));
+               collect((50*19+16):(50*19+35));
+               collect((50*20+16):(50*20+35));
+               collect((50*21+16):(50*21+35));
+               collect((50*22+16):(50*22+35));
+               collect((50*23+16):(50*23+35));
+               collect((50*24+16):(50*24+35));
+               collect((50*25+16):(50*25+35));
+               collect((50*26+16):(50*26+35));
+               collect((50*27+16):(50*27+35));
+               collect((50*28+16):(50*28+35));
+               collect((50*29+16):(50*29+35));
+               collect((50*30+16):(50*30+35));
+               collect((50*31+16):(50*31+35));
+               collect((50*32+16):(50*32+35));
+               collect((50*33+16):(50*33+35));
+               collect((50*34+16):(50*34+35));
+               collect((50*35+16):(50*35+35))]
+
+    elstiff = ones(U.mesh.nEl)
+    elstiff[stiffel] = 100
+
     for i = 1:U.mesh.nEl
         x = [U.mesh.ex[:,i] U.mesh.ey[:,i]]'
         JuAFEM.reinit!(U.fev,x)
         m = edof[:,i]
 
-        intf_closure(an) = intf(an,a[m,:],x,U,D,b)
+        intf_closure(an) = intf(an,a[m,:],x,U,D*elstiff[i],b)
 
         kefunc = ForwardDiff.jacobian(intf_closure, cache=cache)
         Ke = kefunc(an[m])
 
         JuAFEM.assemble(m,_K,Ke)
     end
-
-    ###########################################
-    # Added for Lagrange multiplier for Ux
-    for i =1:U.components[1].mesh.nEl
-        x = U.components[1].mesh.ex[:,i]
-        JuAFEM.reinit!(U.components[1].fev,x')
-
-        edofcomponent = U.components[1].mesh.edof # Dangerous but works for first component (Need to add some connection between compnent mesh and global dofs)
-        m = edofcomponent[:,i]
-        mλ = [m[1:4]; λ_dofs[1:2]] # Not very nice maybe, only works for first component
-
-        intfUλ_closure(an) = intfUλ(an,U.components[1].fev)
-
-        kefuncUλ = ForwardDiff.jacobian(intfUλ_closure)#, cache=cache)
-        KeUλ = kefuncUλ(an[mλ])
-
-        JuAFEM.assemble(mλ,_K,KeUλ)
-    end
-    for i =1:U.components[2].mesh.nEl
-        x = U.components[2].mesh.ex[:,i]
-        JuAFEM.reinit!(U.components[2].fev,x')
-
-        edofcomponent = U.components[2].mesh.edof # Dangerous but works for first component (Need to add some connection between compnent mesh and global dofs)
-        m = edofcomponent[:,i] + U.components[1].mesh.nDofs
-        mλ = [m[1:4]; λ_dofs[3:4]] # Not very nice maybe, only works for first component
-
-        intfUλ_closure(an) = intfUλ(an,U.components[2].fev)
-
-        kefuncUλ = ForwardDiff.jacobian(intfUλ_closure)#, cache=cache)
-        KeUλ = kefuncUλ(an[mλ])
-
-        JuAFEM.assemble(mλ,_K,KeUλ)
-    end
-    ###########################################
 
     K = JuAFEM.end_assemble(_K)
 
