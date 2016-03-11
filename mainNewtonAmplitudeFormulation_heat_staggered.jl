@@ -148,19 +148,20 @@ function mainNewtonAmplitudeFormulation()
             g1 = calc_globres_heat(trial_solution,a,U,D,edof,b,free_1)
             K1 = calc_globK_heat(trial_solution,a,U,D,edof,b,free_1)
             println("det(K1) = $(det(K1))")
-            Δan_1 = -K1\g1
-
+            ΔΔan_1 = -K1\g1
+            Δan_1 += ΔΔan_1
             # Update trial solution?
-            # trial_solution[free_1] = full_solution[free_1] + Δan_1
+            trial_solution[free_1] = full_solution[free_1] + Δan_1
 
             # Step in y-dir
             g2 = calc_globres_heat(trial_solution,a,U,D,edof,b,free_2)
             K2 = calc_globK_heat(trial_solution,a,U,D,edof,b,free_2)
             println("det(K2) = $(det(K2))")
-            Δan_2 = -K2\g2
+            ΔΔan_2 = -K2\g2
+            Δan_2 += ΔΔan_2
 
             # Check residuals
-            trial_solution[free_1] = full_solution[free_1] + Δan_1
+            # trial_solution[free_1] = full_solution[free_1] + Δan_1
             trial_solution[free_2] = full_solution[free_2] + Δan_2
 
             g1 = calc_globres_heat(trial_solution,a,U,D,edof,b,free_1)
