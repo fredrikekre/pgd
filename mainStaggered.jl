@@ -109,12 +109,12 @@ function mainNewton()
 
 
         # Total solution need to satisfy boundary conditions so we enforce that here
-        full_solution[bc_x[1]] = bc_y[2]
-        full_solution[bc_y[1]] = bc_x[2]
+        full_solution[bc_x[1]] = bc_x[2]
+        full_solution[bc_y[1]] = bc_y[2]
 
         Δan = copy(Δan_0)
         # Δan_y = copy(Δan_y_0)
-        i = 0; tol = 1e-5; maxofg = 1; tol_fixpoint = 1e-10; hej = 0;
+        i = 0; tol = 1e-7; maxofg = 1; tol_fixpoint = 1e-5; hej = 0;
         while true; i += 1
             # tic()
             trial_solution[free] = full_solution[free] + Δan[free]
@@ -143,6 +143,7 @@ function mainNewton()
                 hej += 1
                 println("Switched to Newton solver")
                 g = calc_globres(trial_solution,a,U,D,edof,b,free)
+                println("Normen av g = $(maximum(abs(g)))")
                 K = calc_globK(trial_solution,a,U,D,edof,b,free)
                 ΔΔan = -K\g
                 Δan[free] += ΔΔan
@@ -187,12 +188,4 @@ o = mainNewton()
 
 
 visualize(o...)
-
-
-
-
-
-
-
-
 
