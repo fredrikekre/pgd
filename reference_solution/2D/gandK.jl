@@ -1,7 +1,6 @@
 ################
 # Displacement #
 ################
-dev(T) = T-1/3*trace(T) * one(T)
 
 function u_intf{T,Q}(u::Vector{T},d::Vector{Q},u_fe_values,d_fe_values,mp,b::Vector=zeros(2))
 
@@ -14,10 +13,10 @@ function u_intf{T,Q}(u::Vector{T},d::Vector{Q},u_fe_values,d_fe_values,mp,b::Vec
     for q_point in 1:length(u_fe_values.quad_rule.points)
 
         ε = function_vector_symmetric_gradient(u_fe_values, q_point, u_tensor)
-        
+
         d_value = function_scalar_value(d_fe_values,q_point,d)
         rf = 1e-6
-        σ_dev_degradation = (1.0-d_value)^2 + rf*0.0
+        σ_dev_degradation = (1.0-d_value)^2 + rf
 
         σ = σ_dev_degradation * (2 * mp.G * dev(ε) + mp.K * trace(ε)* one(ε))
 
@@ -118,7 +117,7 @@ end
 #     n_basefuncs = n_basefunctions(get_functionspace(d_fe_values))
 
 #     ke = zeros(T,n_basefuncs,n_basefuncs)
-    
+
 #     for q_point in 1:length(d_fe_values.quad_rule.points)
 
 #         d_value = function_scalar_value(d_fe_values,q_point,d)
@@ -247,32 +246,58 @@ function Ψ_intf{T}(u::Vector{T},de::Vector,u_fe_values,d_fe_values,mp,Ψe::Vect
         σ_dev_degradation = (1.0-d_value)^2
         σ_dev_degradation = 1.0
 
-        function dev_23(Tensor2ndOrder)
-            Tvec = [Tensor2ndOrder[1],Tensor2ndOrder[2],0.0,Tensor2ndOrder[3],Tensor2ndOrder[4],0.0,0.0,0.0,0.0]
-            Tensor3rdOrder = Tensor{2,3}(Tvec)
-            devT = Tensor3rdOrder-1/3*trace(Tensor3rdOrder) * one(Tensor3rdOrder)
-            return devT
-        end
-        
-        σ = σ_dev_degradation*( 2 * mp.G * dev_23(ε) + mp.K * trace(ε)* one(dev_23(ε)))
-        σ_dev = 2 * mp.G * dev(ε) * σ_dev_degradation #+ mp.K * trace(ε)* one(dev(ε))
-        # σ_dev = 2 * mp.G * dev(ε) #+ mp.K * trace(ε)* one(dev(ε))
+        ε_3 = convert(SymmetricTensor{2,3},ε)
+
+        σ = σ_dev_degradation*( 2 * mp.G * dev(ε_3) + mp.K * trace(ε_3)* one(ε_3))
+        σ_dev = 2 * mp.G * dev(ε_3) * σ_dev_degradation #+ mp.K * trace(ε)* one(dev(ε))
 
         # Calculate free energy
-        #Ψe[q_point] = 1/2 * (ε ⊡ σ)
         σ_e = sqrt(3/2) * sqrt(σ_dev ⊡ σ_dev)
         σe_plot[q_point] = σ_e
-        # Ψe[q_point] = 1/2 * (ε ⊡ σ)
-        # Ψe[q_point] = max(1/2 * σ_e^2/3/mp.G,Ψe[q_point])
 
-        function promoteEpsilon()
-            ε_vec = [ε[1], ε[2], 0.0, ε[3], ε[4], 0.0, 0.0, 0.0, 0.0]
-            ε_3 = Tensor{2,3}(ε_vec)
-            return ε_3
-        end
-
-        ε_3 = promoteEpsilon()
+        
         Ψe[q_point] = max(1/2 * ε_3 ⊡ σ,Ψe[q_point])
+
+    end
+
+    return Ψe, σe_plot
+end
+
+negpart(x) = 1/2*(abs(x) - x)
+pospart(x) = 1/2*(abs(x) + x)
+
+function Ψ_intf_plus{T}(u::Vector{T},de::Vector,u_fe_values,d_fe_values,mp,Ψe::Vector)
+
+    n_basefuncs = n_basefunctions(get_functionspace(u_fe_values))
+    u = reinterpret(Vec{2,T},u,(n_basefuncs,))
+    σe_plot = zeros(4)
+
+    # Material params
+    λ = mp.E*mp.ν/(1+mp.ν)/(1-2*mp.ν)
+    μ = mp.G
+
+    for q_point in 1:length(u_fe_values.quad_rule.points)
+
+        ε = function_vector_symmetric_gradient(u_fe_values,q_point,u)
+        d_value = function_scalar_value(d_fe_values,q_point,de)
+        σ_dev_degradation = (1.0-d_value)^2
+
+        # Effective degraded stress
+        σ_dev3D = 2 * mp.G * dev(convert(SymmetricTensor{2,3},ε)) * σ_dev_degradation #+ mp.K * trace(ε)* one(dev(ε))
+        σ_e = sqrt(3/2) * sqrt(σ_dev3D ⊡ σ_dev3D)
+        σe_plot[q_point] = σ_e
+
+        # Calculate free energy
+        ε = reshape(ε[:],(2,2))
+        Λ,Φ = eig(ε)
+        Λ_plus = diagm(pospart(Λ))
+        ε_plus = Φ*Λ_plus*Φ'
+        # ε_plus_t = Tensor{2,3}()
+
+        Ψ_plus = λ*pospart(trace(ε))^2 + μ*trace(ε_plus*ε_plus)
+        # Ψ_plus2 = 2*mp.G * dev(convert(Tensor{1,3},ε_plus)) + mp.K * trace()
+
+        Ψe[q_point] = max(Ψ_plus,Ψe[q_point])
 
     end
 

@@ -3,8 +3,6 @@ immutable LEmtrl # Linear elastic material
     ν::Float64
     G::Float64
     K::Float64
-    I_dev_sym::Matrix
-    I::Vector
 end
 
 function LEmtrl()
@@ -17,9 +15,7 @@ function LEmtrl()
     ν = 0.3
     G = E/(2*(1+ν))
     K = E / (3*(1 - 2*ν))
-    I = [1,1,0]
-    I_dev_sym = eye(3) - 1/3*I*I'
-    return LEmtrl(E,ν,G,K,I_dev_sym,I)
+    return LEmtrl(E,ν,G,K)
 end
 
 
@@ -32,8 +28,8 @@ immutable DamageParams # Phase-field parameters
 end
 
 function DamageParams()
-    l = 0.05
-    gc = 0.1/1000
+    l = 0.005
+    gc = 0.1/1000.0
     rp = 1000.0 # Not used
     return DamageParams(l,gc,rp)
 end

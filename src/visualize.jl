@@ -75,7 +75,7 @@ function visualize(a,U)
     Y = copy(X); Z = copy(X)
     X[:,:,1] = x
     Y[:,:,1] = y
-    vtkfile = JuAFEM.vtk_grid("PGD_displacement_staggered", X,Y,Z)
+    vtkfile = JuAFEM.vtk_grid("PGD_displacement_staggered", X,Y,Z,compress=false,append=false)
     vtkdisp = zeros(3,U.components[1].mesh.nEl+1,U.components[2].mesh.nEl+1,1)
     vtkdisp[1,:,:,1] = u
     vtkdisp[2,:,:,1] = v

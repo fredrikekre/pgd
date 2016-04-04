@@ -53,7 +53,7 @@ get_buffer{T}(buff_coll::BufferCollection, ::Type{T}) = buff_coll.buff_float
 
 const buff_colls = BufferCollection(Tgrad, Float64)
 
-function intf{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFunction,D::Matrix,b::Vector=zeros(2))
+function intf{T}(an::Vector{T},a::Matrix,x,U::PGDFunction,D::Matrix,b::Vector=zeros(2))
     # an is the unknowns
     # a are the already computed modes
     # 4 node quadrilateral element
@@ -79,14 +79,24 @@ function intf{T}(an::Vector{T},a::Matrix,x::Matrix,U::PGDFunction,D::Matrix,b::V
     BBy = buff_coll.BBy
 
     for (q_point, (ξ,w)) in enumerate(zip(U.fev.quad_rule.points,U.fev.quad_rule.weights))
-        ξ_x = ξ[1]
-        ξ_y = ξ[2]
+
+        ξ_x = Tensor{1,1}((ξ[1],))
+        ξ_y = Tensor{1,1}((ξ[2],))
 
         # Update values
         ex_x = [U.components[1].mesh.x[1] U.components[1].mesh.x[2]] # only for equidistant mesh
+        ex_x = reinterpret(Vec{1,Float64},ex_x,(size(ex_x,2),))
         ex_y = [U.components[2].mesh.x[1] U.components[2].mesh.x[2]]
-        evaluate_at_gauss_point!(U.components[1].fev,[ξ_x],ex_x,Nx,dNdx)
-        evaluate_at_gauss_point!(U.components[2].fev,[ξ_y],ex_y,Ny,dNdy)
+        ex_y = reinterpret(Vec{1,Float64},ex_y,(size(ex_y,2),))
+
+        dNdx = reinterpret(Vec{1,Float64},dNdx,(2,))
+        dNdy = reinterpret(Vec{1,Float64},dNdy,(2,))
+
+        evaluate_at_gauss_point!(U.components[1].fev,ξ_x,ex_x,Nx,dNdx)
+        evaluate_at_gauss_point!(U.components[2].fev,ξ_y,ex_y,Ny,dNdy)
+
+        dNdx = reinterpret(Float64,dNdx,(size(dNdx[1],1),length(dNdx)))
+        dNdy = reinterpret(Float64,dNdy,(size(dNdy[1],1),length(dNdy)))
 
         # TODO: Simplify these expressions, potentially using ContMechTensors.jl somehow and include the Hadamard product.
         NNx[1,1] = Nx[1] * Ny[1] * any[1] + Nx[1] * Ny[2] * any[3]

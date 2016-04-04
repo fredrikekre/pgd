@@ -51,15 +51,24 @@ function create_edof(gFunc::PGDFunction)
     return edof
 end
 
-function evaluate_at_gauss_point!(fe_v::JuAFEM.FEValues, ξ::Vector, x::Matrix, N::Vector, dNdx::Matrix)
+function evaluate_at_gauss_point!(fe_v::JuAFEM.FEValues, ξ, x, N::Vector, dNdx)
     # Evaluates N and dNdx at a speciefied Gauss-point
+    n_basefuncs = JuAFEM.n_basefunctions(fe_v.function_space)
 
-    dNdξ = zeros(dNdx)
+    dNdξ = [zero(Vec{1,Float64}) for i in 1:n_basefuncs]
     JuAFEM.value!(fe_v.function_space,N,ξ)
     JuAFEM.derivative!(fe_v.function_space,dNdξ,ξ)
-    J = dNdξ * x'
-    Jinv = JuAFEM.inv_spec(J)
 
-    dNdx[:,:] = Jinv*dNdξ
+    J = zero(Tensor{2,1})
+    for i in 1:n_basefuncs
+        J += dNdξ[i] ⊗ x[i]
+    end
+
+    Jinv = inv(J)
+
+    for i in 1:n_basefuncs
+        dNdx[i] = Jinv ⋅ dNdξ[i]
+    end
+
     return N, dNdx
 end

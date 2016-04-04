@@ -12,13 +12,15 @@ function solveDisplacementField(u,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values
         g = u_residual(u_tri,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,u_mp,b)
         tol = 1e-7
         if maximum(abs(g)) < tol
-            println("Displacement field, u, converged in $i iterations, r = $(maximum(abs(g))).")
+            # println("Displacement field, u, converged in $i iterations, r = $(maximum(abs(g))).")
             break
         end
 
         K = u_jacobian(u_tri,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,u_mp,b)
-        ΔΔu = -K\g
-        Δu += ΔΔu
+        ΔΔu = cholfact(Symmetric(K, :U))\g
+        Δu -= ΔΔu
+        # ΔΔu = -K\g
+        # Δu += ΔΔu
 
         return Δu # Since I know its linear
     end
@@ -41,13 +43,15 @@ function solveDamageField(d,d_mesh,d_free,d_fe_values,u,u_mesh,u_fe_values,d_mp,
         # println(norm(g))
         tol = 1e-7
         if maximum(abs(g)) < tol
-            println("Damage field, d, converged in $i iterations, r = $(maximum(abs(g))).")
+            # println("Damage field, d, converged in $i iterations, r = $(maximum(abs(g))).")
             break
         end
 
         K = d_jacobian(d_tri,d,d_mesh,d_free,d_fe_values,u,u_mesh,u_fe_values,d_mp,Ψ)
-        ΔΔd = -K\g
-        Δd += ΔΔd
+        ΔΔd = cholfact(Symmetric(K,:U))\g
+        Δd -= ΔΔd
+        # ΔΔd = -K\g
+        # Δd += ΔΔd
 
         return Δd # Since I know its linear
     end

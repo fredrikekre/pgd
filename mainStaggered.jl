@@ -1,7 +1,9 @@
 import JuAFEM
+import CALFEM
 using InplaceOps
 using ForwardDiff
-using NLsolve
+using ContMechTensors
+# using NLsolve
 
 include("src/meshgenerator.jl")
 include("src/PGDmodule.jl")
@@ -10,7 +12,7 @@ include("src/elementFunctions.jl")
 include("src/globResK.jl")
 include("src/visualize.jl")
 
-function mainNewton()
+function mainStaggered()
     xStart = 0; yStart = 0
     xEnd = 1; yEnd = 1
     xnEl = 50; ynEl = 50
@@ -21,8 +23,8 @@ function mainNewton()
     xymesh = create_mesh2D(xStart,xEnd,yStart,yEnd,xnEl,ynEl,2)
 
     # Set up function components
-    function_space = JuAFEM.Lagrange{1,JuAFEM.Square,1}()
-    q_rule = JuAFEM.get_gaussrule(JuAFEM.Dim{1},JuAFEM.Square(),1)
+    function_space = JuAFEM.Lagrange{1,JuAFEM.RefCube,1}()
+    q_rule = JuAFEM.GaussQuadrature(JuAFEM.Dim{1},JuAFEM.RefCube(),1)
     fevx = JuAFEM.FEValues(Float64,q_rule,function_space)
     fevy = JuAFEM.FEValues(Float64,q_rule,function_space)
 
@@ -30,8 +32,8 @@ function mainNewton()
     Uy = PGDComponent(1,ymesh,fevy)
 
     # Set up PGDfunction
-    function_space = JuAFEM.Lagrange{2,JuAFEM.Square,1}()
-    q_rule = JuAFEM.get_gaussrule(JuAFEM.Dim{2},JuAFEM.Square(),2)
+    function_space = JuAFEM.Lagrange{2,JuAFEM.RefCube,1}()
+    q_rule = JuAFEM.GaussQuadrature(JuAFEM.Dim{2},JuAFEM.RefCube(),2)
     fevxy = JuAFEM.FEValues(Float64,q_rule,function_space)
 
     U = PGDFunction(2,2,xymesh,fevxy,[Ux, Uy])
@@ -42,7 +44,7 @@ function mainNewton()
 
     # Material stiffness
     E = 1; ν = 0.3
-    D = JuAFEM.hooke(2,E,ν); D = D[[1,2,4],[1,2,4]]
+    D = CALFEM.hooke(2,E,ν); D = D[[1,2,4],[1,2,4]]
 
     # Boundary conditions
     bc = Vector[[x_mode_dofs[[1,2]];
@@ -114,7 +116,7 @@ function mainNewton()
 
         Δan = copy(Δan_0)
         # Δan_y = copy(Δan_y_0)
-        i = 0; tol = 1e-7; maxofg = 1; tol_fixpoint = 1e-5; hej = 0;
+        i = 0; tol = 1e-7; maxofg = 1; tol_fixpoint = 1e-7; hej = 0;
         while true; i += 1
             # tic()
             trial_solution[free] = full_solution[free] + Δan[free]
@@ -141,7 +143,7 @@ function mainNewton()
             else
                 # Full newton
                 hej += 1
-                println("Switched to Newton solver")
+                println("Switched to Newton solver 4Head")
                 g = calc_globres(trial_solution,a,U,D,edof,b,free)
                 println("Normen av g = $(maximum(abs(g)))")
                 K = calc_globK(trial_solution,a,U,D,edof,b,free)
@@ -161,7 +163,7 @@ function mainNewton()
             # g2 = calc_globres(trial_solution,a,U,D,edof,b,free_2)
 
             maxofg = maximum(abs(g))
-            println("Residual is now maxofg = $maxofg")
+            # println("Residual is now maxofg = $maxofg")
             if maxofg < tol
                 println("Converged for mode #$modeItr in $i iterations. max(g) = $(maxofg)")
                 break
@@ -183,7 +185,7 @@ function mainNewton()
     return a, U
 end
 
-o = mainNewton()
+o = mainStaggered()
 
 
 

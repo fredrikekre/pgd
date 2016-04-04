@@ -32,6 +32,7 @@ function calc_globres{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::
     for i = 1:U.mesh.nEl
         # println("Residual element #$i")
         x = [U.mesh.ex[:,i] U.mesh.ey[:,i]]'
+        x = reinterpret(Vec{2,T},x,(size(x,2),))
         JuAFEM.reinit!(U.fev,x)
         m = edof[:,i]
         ge = intf(an[m],a[m,:],x,U,D*elstiff[i],b)
@@ -76,6 +77,7 @@ function calc_globK{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Ma
     for i = 1:U.mesh.nEl
         # println("Stiffness element #$i")
         x = [U.mesh.ex[:,i] U.mesh.ey[:,i]]'
+        x = reinterpret(Vec{2,T},x,(size(x,2),))
         JuAFEM.reinit!(U.fev,x)
         m = edof[:,i]
 
