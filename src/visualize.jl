@@ -22,8 +22,10 @@ function visualize(a,U)
     # println("Orthogonality for Vy: 2⋅1 = $(dot(Vy[:,2],Vy[:,1])), 3⋅1 = $(dot(Vy[:,3],Vy[:,1])), 4⋅1 = $(dot(Vy[:,4],Vy[:,1])), 5⋅1 = $(dot(Vy[:,5],Vy[:,1]))")
 
 
-    u = Ux*Uy'
-    v = Vx*Vy'
+    # u = Ux*Uy'
+    # v = Vx*Vy'
+    u = Uy*Ux'
+    v = Vy*Vx'
 
     for i = 1:nModes
         PyPlot.figure(1)
@@ -40,7 +42,7 @@ function visualize(a,U)
         PyPlot.plot(U.components[2].mesh.x,Vy[:,i])
     end
 
-    return 1
+    # return 1
 
 
     # Plot displacement field

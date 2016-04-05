@@ -5,12 +5,13 @@ function displacementModeSolver(a,a_old,U,bc_U,ndofs,D,edof,b,modeItr,controlled
     trial_solution = zeros(ndofs)
 
     Δan_0 = 1.0*ones(Float64, ndofs) # Initial guess
-    Δan_0[fixed_dofs(bc_U)] = 0.0
+    Δan_0[fixed_dofs(bc_U)] = 0.0 # Unnecessary
 
 
     # Total solution need to satisfy boundary conditions so we enforce that here
     if modeItr == 1 # Only apply Dirichlet bc on mode 1
         full_solution[prescr_dofs(bc_U)] = controlled_displacement
+        println("I added controlled displacement as $controlled_displacement on dofs $(prescr_dofs(bc_U))")
     else
         full_solution[prescr_dofs(bc_U)] = 0.0
     end
@@ -20,7 +21,8 @@ function displacementModeSolver(a,a_old,U,bc_U,ndofs,D,edof,b,modeItr,controlled
     i = -1; TOL = 1e-7; maxofg = 1;
     while true; i += 1
         # tic()
-        trial_solution[free_dofs(bc_U)] = full_solution[free_dofs(bc_U)] + Δan[free_dofs(bc_U)]
+        copy!(trial_solution,full_solution)
+        trial_solution[free_dofs(bc_U)] += Δan[free_dofs(bc_U)]
 
         g = calc_globres(trial_solution,a,U,D,edof,b,free_dofs(bc_U))
 
@@ -38,7 +40,7 @@ function displacementModeSolver(a,a_old,U,bc_U,ndofs,D,edof,b,modeItr,controlled
             Δan[free_dofs(bc_U,1)] -= ΔΔan
 
             # Update trial solution? Yes, should help when solving for y-dir
-            trial_solution[free_dofs(bc_U,1)] = full_solution[free_dofs(bc_U,1)] + Δan[free_dofs(bc_U,1)]
+            trial_solution[free_dofs(bc_U,1)] += Δan[free_dofs(bc_U,1)]
 
             # Step in y-dir
             g_y = calc_globres(trial_solution,a,U,D,edof,b,free_dofs(bc_U,2))
