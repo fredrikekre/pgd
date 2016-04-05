@@ -49,35 +49,35 @@ function main()
     D = CALFEM.hooke(2,E,ν); D = D[[1,2,4],[1,2,4]]
 
     # Boundary conditions
-    bc_U, bc_Ux, bc_Uy = displacementBC(U)
+    # bc_U, bc_Ux, bc_Uy = displacementBC(U)
+    bc_U = displacementBC(U)
 
     # Write output
     pvd = paraview_collection("./resultfiles/result")
 
     ndofs = maximum(edof_U)
-    free = setdiff(1:ndofs,bc_U[1])
-    free_x = setdiff(1:ndofs,bc_Ux[1])
-    free_y = setdiff(1:ndofs,bc_Uy[1])
+    # free = setdiff(1:ndofs,bc_U[1])
+    # free_x = setdiff(1:ndofs,bc_Ux[1])
+    # free_y = setdiff(1:ndofs,bc_Uy[1])
 
-    n_free = length(free)
-    n_free_dofs_x = length(free_x)
-    n_free_dofs_y = length(free_y)
+    # n_free = length(free)
+    # n_free_dofs_x = length(free_x)
+    # n_free_dofs_y = length(free_y)
 
-    b = [1.0,1.0] # Body force
+    b = [1.0,1.0]*0.0 # Body force
 
-    n_modes = 1
+    n_modes = 2
     aU = zeros(ndofs, n_modes)
     aU_old = copy(aU)
 
     n_loadsteps = 5
     for loadstep in 1:n_loadsteps
         println("Loadstep #$loadstep of $n_loadsteps")
-        b = b*loadstep
-
+        controlled_displacement = 0.05*loadstep
         # Displacement solution
         for modeItr = 1:n_modes
             # tic()
-            newMode = displacementModeSolver(aU,U,ndofs,bc_U,bc_Ux,bc_Uy,D,edof_U,b,free,free_x,free_y,modeItr)
+            newMode = displacementModeSolver(aU,aU_old,U,bc_U,ndofs,D,edof_U,b,modeItr,controlled_displacement)
             aU[:,modeItr] = newMode # Maybe change this to aU = [aU newMode] instead for arbitrary number of modes
             U.modes += 1
             # toc()
@@ -94,6 +94,7 @@ function main()
 
         # Write to file
         vtkwriter(pvd,aU,U,loadstep)
+        aU_old = copy(aU)
         U.modes = 0
     end # of loadstepping
     vtk_save(pvd)
@@ -104,4 +105,4 @@ tic()
 o = main()
 toc()
 
-visualize(o...)
+# visualize(o...)
