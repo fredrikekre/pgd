@@ -1,5 +1,3 @@
-import PyPlot
-
 
 function visualize(a,U)
     # Plots the modes
@@ -42,7 +40,7 @@ function visualize(a,U)
         PyPlot.plot(U.components[2].mesh.x,Vy[:,i])
     end
 
-    # return 1
+    return 1
 
 
     # Plot displacement field
