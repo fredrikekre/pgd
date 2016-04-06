@@ -3,11 +3,11 @@ using ForwardDiff
 using WriteVTK
 # using CALFEM
 
-include("phasefield.jl")
+include("src/phasefield.jl")
 include("../../src/meshgenerator.jl")
-include("solvers.jl")
-include("gandK.jl")
-include("vtkwriter.jl")
+include("src/solvers.jl")
+include("src/gandK.jl")
+include("src/vtkwriter.jl")
 
 function main()
 
