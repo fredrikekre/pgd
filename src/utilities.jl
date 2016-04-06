@@ -72,3 +72,24 @@ function evaluate_at_gauss_point!(fe_v::JuAFEM.FEValues, ξ, x, N::Vector, dNdx)
 
     return N, dNdx
 end
+
+function norm_of_mode(U::PGDFunction, a::Array)
+    # Calculate the norm of mode `a` for PGD function `U`
+    # if `U` is 2D and 2 dimensionally mode `a`
+
+    Ux_dof = 1:2:(U.components[1].mesh.nDofs-1)
+    Vx_dof = 2:2:(U.components[1].mesh.nDofs)
+    Uy_dof = (U.components[1].mesh.nDofs+1):2:(U.components[1].mesh.nDofs+U.components[1].mesh.nDofs-1)
+    Vy_dof = (U.components[1].mesh.nDofs+2):2:(U.components[1].mesh.nDofs+U.components[1].mesh.nDofs)
+
+    Ux = a[Ux_dof,:]
+    Vx = a[Vx_dof,:]
+
+    Uy = a[Uy_dof,:]
+    Vy = a[Vy_dof,:]
+
+    u = Uy*Ux'; normu = norm(u)
+    v = Vy*Vx'; normv = norm(v)
+
+    return normu, normv
+end
