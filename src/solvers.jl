@@ -26,7 +26,14 @@ function displacementModeSolver(a,a_old,U,bc_U,ndofs,D,edof,b,modeItr)
         maxofg = maximum(abs(g))
         # println("Residual is now maxofg = $maxofg")
         if maxofg < TOL # converged
-            println("Converged mode #$modeItr in $i iterations. norm(mode) = $(norm(trial_solution[free_dofs(bc_U)]))")
+
+            atemp = copy(a)
+            atemp[:,modeItr+1] = trial_solution
+            tot_norms = norm_of_mode(U,atemp[:,1:U.modes+1])
+            this_norms = norm_of_mode(U,trial_solution)
+            ratios = (this_norms[1]/tot_norms[1], this_norms[2]/tot_norms[2])
+
+            println("Converged mode #$modeItr in $i iterations. Ratios = $(ratios)")
             break
         else # do steps
 
@@ -37,7 +44,7 @@ function displacementModeSolver(a,a_old,U,bc_U,ndofs,D,edof,b,modeItr)
             Δan[free_dofs(bc_U,1)] -= ΔΔan
 
             # Update trial solution? Yes, should help when solving for y-dir
-            trial_solution[free_dofs(bc_U,1)] -= ΔΔan
+            trial_solution[free_dofs(bc_U,1)] -= ΔΔan # or trial_solution[free_dofs(bc_U,1)] = full_solution[free_dofs(bc_U,1)] + Δan[free_dofs(bc_U,1)]
 
             # Step in y-dir
             g_y = calc_globres(trial_solution,a,U,D,edof,b,free_dofs(bc_U,2))
@@ -45,8 +52,7 @@ function displacementModeSolver(a,a_old,U,bc_U,ndofs,D,edof,b,modeItr)
             ΔΔan = cholfact(Symmetric(K_y, :U))\g_y
             Δan[free_dofs(bc_U,2)] -= ΔΔan
 
-
-            # trial_solution[free_dofs(bc_U,2)] = full_solution[free_dofs(bc_U,2)] + Δan[free_dofs(bc_U,2)]
+            # trial_solution[free_dofs(bc_U,2)] -= ΔΔan # or trial_solution[free_dofs(bc_U,2)] = full_solution[free_dofs(bc_U,2)] + Δan[free_dofs(bc_U,2)]
 
             if i > 99
                 println("Iteration is now $i")
