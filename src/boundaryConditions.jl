@@ -71,7 +71,7 @@ function displacementBC(U) # completely fixed
     Uy_dirichlet = float(zeros(Uy_dof))
 
     Vx_dirichlet = float(ones(Vx_dof))
-    Vy_dirichlet = U.components[2].mesh.x
+    Vy_dirichlet = U.components[2].mesh.x / maximum(U.components[2].mesh.x)
 
     dirichletmode = [zipper(Ux_dirichlet,Vx_dirichlet); zipper(Uy_dirichlet,Vy_dirichlet)]
 

@@ -12,8 +12,10 @@ function vtkwriter(pvd,a,U,step)
     Uy = a[Uy_dof,:]
     Vy = a[Vy_dof,:]
 
-    u = Ux*Uy'
-    v = Vx*Vy'
+    # u = Ux*Uy'
+    # v = Vx*Vy'
+    u = Uy*Ux'
+    v = Vy*Vx'
 
     x = U.components[1].mesh.x; x = repmat(x,1,length(U.components[2].mesh.x))'
     y = U.components[2].mesh.x; y = repmat(y,1,length(U.components[1].mesh.x))
