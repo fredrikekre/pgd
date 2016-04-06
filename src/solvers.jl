@@ -2,7 +2,6 @@ function displacementModeSolver(a,a_old,U,bc_U,ndofs,D,edof,b,modeItr)
 
     # Set up initial stuff
     full_solution = a_old[:,modeItr] # Reuse last loadstep's mode as initial guess
-    full_solution = a_old[:,modeItr]*0.0
     trial_solution = zeros(ndofs)
 
     Δan_0 = 1.0*ones(Float64, ndofs) # Initial guess
@@ -25,9 +24,9 @@ function displacementModeSolver(a,a_old,U,bc_U,ndofs,D,edof,b,modeItr)
         g = calc_globres(trial_solution,a,U,D,edof,b,free_dofs(bc_U))
 
         maxofg = maximum(abs(g))
-        println("Residual is now maxofg = $maxofg")
+        # println("Residual is now maxofg = $maxofg")
         if maxofg < TOL # converged
-            println("Converged for displacement mode #$modeItr in $i iterations. max(g) = $(maxofg)")
+            println("Converged mode #$modeItr in $i iterations. norm(mode) = $(norm(trial_solution[free_dofs(bc_U)]))")
             break
         else # do steps
 

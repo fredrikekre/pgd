@@ -50,29 +50,29 @@ function main()
 
     # Boundary conditions
     bc_U, dirichletmode = displacementBC(U)
-    # U.modes += 1
-    n_modes = 2
+    U.modes += 1
+    n_modes = 5
     ndofs = maximum(edof_U)
     aU = [dirichletmode zeros(ndofs, n_modes)]
-    aU = zeros(ndofs, n_modes)
+    # aU = zeros(ndofs, n_modes)
     aU_old = copy(aU)
 
     # Write output
     pvd = paraview_collection("./resultfiles/result")
 
-    b = [1.0,1.0] # Body force
+    b = [1.0,1.0]*0.01 # Body force
     max_displacement = 0.1
 
-    n_loadsteps = 1
-    for loadstep in 1:n_loadsteps+1
+    n_loadsteps = 2
+    for loadstep in 1:n_loadsteps
         println("Loadstep #$loadstep of $n_loadsteps")
         controlled_displacement = max_displacement*(loadstep-1)/n_loadsteps
-        aU[:,1] = controlled_displacement * dirichletmode * 0.0
+        aU[:,1] = controlled_displacement * dirichletmode
         # Displacement solution
         for modeItr = 1:n_modes
             # tic()
             newMode = displacementModeSolver(aU,aU_old,U,bc_U,ndofs,D,edof_U,b,modeItr)
-            aU[:,modeItr] = newMode # Maybe change this to aU = [aU newMode] instead for arbitrary number of modes
+            aU[:,modeItr+1] = newMode # Maybe change this to aU = [aU newMode] instead for arbitrary number of modes
             U.modes += 1
             # toc()
         end # of mode iterations
@@ -89,7 +89,7 @@ function main()
         # Write to file
         vtkwriter(pvd,aU,U,loadstep)
         aU_old = copy(aU)
-        U.modes = 0
+        U.modes = 1
 
     end # of loadstepping
     vtk_save(pvd)
