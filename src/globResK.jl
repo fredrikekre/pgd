@@ -35,7 +35,7 @@ function calc_globres{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::
         x = reinterpret(Vec{2,T},x,(size(x,2),))
         JuAFEM.reinit!(U.fev,x)
         m = edof[:,i]
-        ge = intf(an[m],a[m,:],x,U,D*elstiff[i],b)
+        ge = U_intf(an[m],a[m,:],x,U,D*elstiff[i],b)
 
         g_glob[m] += ge
     end
@@ -81,9 +81,9 @@ function calc_globK{T}(an::Vector{T},a::Matrix,U::PGDFunction,D::Matrix,edof::Ma
         JuAFEM.reinit!(U.fev,x)
         m = edof[:,i]
 
-        intf_closure(an) = intf(an,a[m,:],x,U,D*elstiff[i],b)
+        U_intf_closure(an) = U_intf(an,a[m,:],x,U,D*elstiff[i],b)
 
-        kefunc = ForwardDiff.jacobian(intf_closure, cache=cache)
+        kefunc = ForwardDiff.jacobian(U_intf_closure, cache=cache)
         Ke = kefunc(an[m])
 
         JuAFEM.assemble(m,_K,Ke)

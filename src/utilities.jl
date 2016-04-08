@@ -42,14 +42,24 @@ function create_link(gFunc::PGDFunction)
     return link
 end
 
-function create_edof(gFunc::PGDFunction)
+function create_edof(gFunc::PGDFunction,nNodeDofs::Int)
     gnEl = gFunc.mesh.nEl # Number of elements in gov. mesh
-    edof = zeros(Int64,8,gnEl)
-    edof[1:4,:] = hcat([gFunc.components[1].mesh.edof for i in 1:gFunc.components[2].mesh.nEl]...)
-    edof[5:8,:] = reshape(vcat([gFunc.components[2].mesh.edof for i in 1:gFunc.components[1].mesh.nEl]...),(4,gnEl))
-    edof[5:8,:] += gFunc.components[1].mesh.nDofs
+
+    if nNodeDofs == 1
+        edof = zeros(Int64,4,gnEl)
+        edof[1:2,:] = hcat([gFunc.components[1].mesh.edof for i in 1:gFunc.components[2].mesh.nEl]...)
+        edof[3:4,:] = reshape(vcat([gFunc.components[2].mesh.edof for i in 1:gFunc.components[1].mesh.nEl]...),(2,gnEl))
+        edof[3:4,:] += gFunc.components[1].mesh.nDofs
+    elseif nNodeDofs == 2
+        edof = zeros(Int64,8,gnEl)
+        edof[1:4,:] = hcat([gFunc.components[1].mesh.edof for i in 1:gFunc.components[2].mesh.nEl]...)
+        edof[5:8,:] = reshape(vcat([gFunc.components[2].mesh.edof for i in 1:gFunc.components[1].mesh.nEl]...),(4,gnEl))
+        edof[5:8,:] += gFunc.components[1].mesh.nDofs
+    end
     return edof
 end
+
+number_of_dofs(x::Array{Int,2}) = maximum(x)
 
 function evaluate_at_gauss_point!(fe_v::JuAFEM.FEValues, ξ, x, N::Vector, dNdx)
     # Evaluates N and dNdx at a speciefied Gauss-point

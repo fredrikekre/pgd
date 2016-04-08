@@ -1,10 +1,10 @@
-function displacementModeSolver(a,a_old,U,bc_U,ndofs,D,edof,b,modeItr)
+function displacementModeSolver(a,a_old,U,bc_U,D,edof,b,modeItr)
 
     # Set up initial stuff
     full_solution = a_old[:,modeItr] # Reuse last loadstep's mode as initial guess
-    trial_solution = zeros(ndofs)
+    trial_solution = zeros(number_of_dofs(edof))
 
-    Δan_0 = 0.1*ones(Float64, ndofs) # Initial guess
+    Δan_0 = 0.1*ones(Float64, number_of_dofs(edof)) # Initial guess
     Δan_0[fixed_dofs(bc_U)] = 0.0
     Δan_0[prescr_dofs(bc_U)] = 0.0
 
