@@ -4,7 +4,7 @@ function displacementModeSolver(a,a_old,U,bc_U,ndofs,D,edof,b,modeItr)
     full_solution = a_old[:,modeItr] # Reuse last loadstep's mode as initial guess
     trial_solution = zeros(ndofs)
 
-    Δan_0 = 1.0*ones(Float64, ndofs) # Initial guess
+    Δan_0 = 0.1*ones(Float64, ndofs) # Initial guess
     Δan_0[fixed_dofs(bc_U)] = 0.0
     Δan_0[prescr_dofs(bc_U)] = 0.0
 
@@ -15,7 +15,7 @@ function displacementModeSolver(a,a_old,U,bc_U,ndofs,D,edof,b,modeItr)
 
     Δan = copy(Δan_0)
     # Δan_y = copy(Δan_y_0)
-    i = -1; TOL = 1e-7; maxofg = 1
+    i = -1; TOL = 1e-6; maxofg = 1
     while true; i += 1
         # tic()
         copy!(trial_solution,full_solution)
@@ -54,8 +54,9 @@ function displacementModeSolver(a,a_old,U,bc_U,ndofs,D,edof,b,modeItr)
 
             # trial_solution[free_dofs(bc_U,2)] -= ΔΔan # or trial_solution[free_dofs(bc_U,2)] = full_solution[free_dofs(bc_U,2)] + Δan[free_dofs(bc_U,2)]
 
-            if i > 99
-                println("Iteration is now $i")
+            if i > 149
+                warn("Exited loop after $i iterations with residual $maxofg")
+                break
             end
         end
         # toc()
