@@ -1,6 +1,6 @@
 import JuAFEM
 import CALFEM
-using InplaceOps
+# using InplaceOps
 using ForwardDiff
 using ContMechTensors
 import PyPlot
@@ -28,7 +28,7 @@ function main()
 
     # Set up function components
     function_space = JuAFEM.Lagrange{1,JuAFEM.RefCube,1}()
-    q_rule = JuAFEM.GaussQuadrature(JuAFEM.Dim{1},JuAFEM.RefCube(),1)
+    q_rule = JuAFEM.QuadratureRule(JuAFEM.Dim{1},JuAFEM.RefCube(),1)
     fevx = JuAFEM.FEValues(Float64,q_rule,function_space)
     fevy = JuAFEM.FEValues(Float64,q_rule,function_space)
 
@@ -37,7 +37,7 @@ function main()
 
     # Set up PGDfunction
     function_space = JuAFEM.Lagrange{2,JuAFEM.RefCube,1}()
-    q_rule = JuAFEM.GaussQuadrature(JuAFEM.Dim{2},JuAFEM.RefCube(),2)
+    q_rule = JuAFEM.QuadratureRule(JuAFEM.Dim{2},JuAFEM.RefCube(),2)
     fevxy = JuAFEM.FEValues(Float64,q_rule,function_space)
 
     U = PGDFunction(2,2,xymesh,fevxy,[Ux, Uy])
@@ -51,7 +51,7 @@ function main()
     # Boundary conditions
     bc_U, dirichletmode = displacementBC(U)
     U.modes += 1
-    n_modes = 20
+    n_modes = 2
     ndofs = maximum(edof_U)
     aU = [dirichletmode zeros(ndofs, n_modes)]
     # aU = zeros(ndofs, n_modes)
@@ -60,14 +60,15 @@ function main()
     # Write output
     pvd = paraview_collection("./resultfiles/result")
 
-    b = [1.0,1.0]*0.1 # Body force
-    max_displacement = 0.1
+    b = [0.0,-0.5] # Body force
+    max_displacement = 0.5
 
-    n_loadsteps = 1
-    for loadstep in 1:n_loadsteps
-        println("Loadstep #$loadstep of $n_loadsteps")
-        controlled_displacement = max_displacement*(loadstep-1)/n_loadsteps
-        aU[:,1] = controlled_displacement * dirichletmode
+    n_loadsteps = 2
+    for loadstep in 0:n_loadsteps
+        println("Loadstep #$loadstep of $(n_loadsteps)")
+        controlled_displacement = max_displacement*(loadstep/n_loadsteps)
+        aU[:,1] = sqrt(controlled_displacement) * dirichletmode # Since `dirichletmode` is squared
+
         # Displacement solution
         for modeItr = 1:n_modes
             # tic()
@@ -76,6 +77,7 @@ function main()
             U.modes += 1
             # toc()
         end # of mode iterations
+
 
         # # # Damage solution
         # # for modeItr = 1:n_modes
