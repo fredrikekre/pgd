@@ -87,11 +87,11 @@ function main()
     #########################
     # Simulation parameters #
     #########################
-    U_n_modes = 5
-    D_n_modes = 5
+    U_n_modes = 2
+    D_n_modes = 2
 
-    n_loadsteps = 10
-    max_displacement = 0.5
+    n_loadsteps = 2
+    max_displacement = 0.2
 
     #######################
     # Material parameters #
@@ -103,15 +103,15 @@ function main()
     #######################
     # Boundary conditions #
     #######################
-    U_bc, U_dirichletmode = displacementBC(U)
+    U_bc, U_dirichletmode = U_BC(U)
     U.modes += 1 # Add the first mode as a dirichlet mode
     U_a = [U_dirichletmode repmat(zeros(U_dirichletmode),1,U_n_modes)]
     U_a_old = copy(U_a)
 
-    # D_bc, D_dirichletmode = damageBC(D)
-    # U.modes += 1 # Add the first mode as a dirichlet mode
-    # D_a = [D_dirichletmode repmat(zeros(D_dirichletmode),1,D_n_modes)]
-    # D_a_old = copy(D_a)
+    D_bc, D_dirichletmode = D_BC(D)
+    D.modes += 1 # Add the first mode as a dirichlet mode
+    D_a = [D_dirichletmode repmat(zeros(D_dirichletmode),1,D_n_modes)]
+    D_a_old = copy(D_a)
 
     # Body force
     b = [0.0, 0.0]
@@ -129,29 +129,36 @@ function main()
         controlled_displacement = max_displacement*(loadstep/n_loadsteps)
         U_a[:,1] = sqrt(controlled_displacement) * U_dirichletmode # Since `dirichletmode` is squared
 
-        # Displacement solution
-        for modeItr = 1:U_n_modes
+        # Displacement as function of damage
+        for modeItr = 2:(U_n_modes + 1)
             # tic()
-            newMode = displacementModeSolver(U_a,U_a_old,U,U_bc,D_mat,U_edof,b,modeItr)
-            U_a[:,modeItr+1] = newMode # Maybe change this to aU = [aU newMode] instead for arbitrary number of modes
-            U.modes += 1
+            newMode = UD_ModeSolver(U_a,U_a_old,U,U_bc,U_edof,
+                                    D_a,D_a_old,D,D_bc,D_edof,
+                                    D_mat,b,modeItr)
+
+            U_a[:,modeItr] = newMode # Maybe change this to U_a = [U_a newMode] instead for arbitrary number of modes
+            U.modes = modeItr
             # toc()
         end # of mode iterations
 
-
-        # # # Damage solution
-        # # for modeItr = 1:n_modes
-        # #     tic()
-        # #     newMode = damageModeSolver(aU,U,ndofs,bc,bc_x,bc_y,D,edof,b,free,free_x,free_y,modeItr)
-        # #     aD[:,modeItr] = newMode # Maybe change this to aU = [aU newMode] instead for arbitrary number of modes
-        # #     D.modes += 1
-        # #     toc()
-        # # end
+        # Damage as function of the displacement
+        for modeItr = 2:(D_n_modes + 1)
+            # tic()
+            newMode = DU_ModeSolver(D_a,D_a_old,D,D_bc,D_edof,
+                                    U_a,U_a_old,U,U_bc,U_edof,
+                                    D_mat,b,modeItr)
+            D_a[:,modeItr] = newMode # Maybe change this to D_a = [D_a newMode] instead for arbitrary number of modes
+            D.modes = modeItr
+            # toc()
+        end
 
         # Write to file
+        vtkwriter(pvd,U_a,U,D_a,D,loadstep)
         vtkwriter(pvd,U_a,U,loadstep)
-        copy!(U_a_old,U_a)r
+        copy!(U_a_old,U_a)
+        copy!(D_a_old,D_a)
         U.modes = 1
+        D.modes = 1
 
     end # of loadstepping
     vtk_save(pvd)

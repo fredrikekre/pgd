@@ -297,7 +297,12 @@ function Ψ_intf_plus{T}(u::Vector{T},de::Vector,u_fe_values,d_fe_values,mp,Ψe:
         Ψ_plus = λ*pospart(trace(ε))^2 + μ*trace(ε_plus*ε_plus)
         # Ψ_plus2 = 2*mp.G * dev(convert(Tensor{1,3},ε_plus)) + mp.K * trace()
 
-        Ψe[q_point] = max(Ψ_plus,Ψe[q_point])
+        # Ψe[q_point] = max(Ψ_plus,Ψe[q_point])
+        if Ψ_plus > Ψ[q_point]
+            Ψ[q_point] = Ψ_plus
+        else
+            println("I AM LOWER!")
+        end
 
     end
 

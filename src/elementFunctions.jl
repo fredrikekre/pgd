@@ -1,60 +1,8 @@
+include("buffers.jl")
+
 ###############################
 # Displacement internal force #
 ###############################
-
-# Cache some stuff so we don't need to recreate them in every function call
-type Buffers{T}
-    NNx::Matrix{T}
-    NNy::Matrix{T}
-    BBx::Matrix{T}
-    BBy::Matrix{T}
-    g::Vector{T}
-    ε::Vector{T}
-    ε_m::Vector{T} # ε for a mode
-    dNdx::Matrix{Float64}
-    dNdy::Matrix{Float64}
-    Nx::Vector{Float64}
-    Ny::Vector{Float64}
-end
-
-function Buffers{T}(Tv::Type{T})
-    g = zeros(T,8) # Not general
-
-    Nx = zeros(2) # Shape functions
-    Ny = zeros(2)
-
-    dNdx = zeros(1,2) # Derivatives
-    dNdy = zeros(1,2)
-
-    NNx = zeros(T,2,4) # N matrix for force vector
-    NNy = zeros(T,2,4)
-
-    BBx = zeros(T,3,4) # B matrix for stiffness
-    BBy = zeros(T,3,4)
-
-    ε = zeros(T, 3)
-    ε_m = zeros(T, 3)
-
-    return Buffers(NNx, NNy, BBx, BBy, g, ε, ε_m, dNdx, dNdy, Nx, Ny)
-end
-
-type BufferCollection{Q, T}
-    buff_grad::Buffers{Q}
-    buff_float::Buffers{T}
-end
-
-function BufferCollection{Q, T}(Tq::Type{Q}, Tt::Type{T})
-    BufferCollection(Buffers(Tq), Buffers(Tt))
-end
-
-import ForwardDiff.GradientNumber
-# The 8 here is the "chunk size" used
-Tgrad = ForwardDiff.GradientNumber{8, Float64, NTuple{8, Float64}}
-get_buffer{T <: GradientNumber}(buff_coll::BufferCollection, ::Type{T}) = buff_coll.buff_grad
-get_buffer{T}(buff_coll::BufferCollection, ::Type{T}) = buff_coll.buff_float
-
-
-const buff_colls = BufferCollection(Tgrad, Float64)
 
 function U_intf{T}(an::Vector{T},a::Matrix,x,U::PGDFunction,D::Matrix,b::Vector=zeros(2))
     # an is the unknowns
@@ -65,7 +13,7 @@ function U_intf{T}(an::Vector{T},a::Matrix,x,U::PGDFunction,D::Matrix,b::Vector=
     ax = a[1:4,:]
     ay = a[5:8,:]
 
-    buff_coll = get_buffer(buff_colls, T)
+    buff_coll = get_buffer(U_buff_colls, T)
 
     g = buff_coll.g # Not general
 
@@ -170,16 +118,19 @@ end
 # Displacement internal force as function of damage #
 #####################################################
 
-function UD_intf{T}(an::Vector{T},a::Matrix,x,U::PGDFunction,D::Matrix,b::Vector=zeros(2))
-    # an is the unknowns
-    # a are the already computed modes
-    # 4 node quadrilateral element
-    anx = an[1:4] # Not general
-    any = an[5:8]
-    ax = a[1:4,:]
-    ay = a[5:8,:]
+function UD_intf{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,D_a::Matrix,D::PGDFunction,x,D_mat::Matrix,b::Vector=zeros(2))
 
-    buff_coll = get_buffer(buff_colls, T)
+    # Displacement
+    U_anx = U_an[1:4] # Not general
+    U_any = U_an[5:8]
+    U_ax = U_a[1:4,:]
+    U_ay = U_a[5:8,:]
+
+    # Damage
+    D_ax = D_a[1:2,:]
+    D_ay = D_a[3:4,:]
+
+    buff_coll = get_buffer(UD_buff_colls, T)
 
     g = buff_coll.g # Not general
 
@@ -216,55 +167,70 @@ function UD_intf{T}(an::Vector{T},a::Matrix,x,U::PGDFunction,D::Matrix,b::Vector
         dNdy = reinterpret(Float64,dNdy,(size(dNdy[1],1),length(dNdy)))
 
         # TODO: Simplify these expressions, potentially using ContMechTensors.jl somehow and include the Hadamard product.
-        NNx[1,1] = Nx[1] * Ny[1] * any[1] + Nx[1] * Ny[2] * any[3]
-        NNx[2,2] = Nx[1] * Ny[1] * any[2] + Nx[1] * Ny[2] * any[4]
-        NNx[1,3] = Nx[2] * Ny[1] * any[1] + Nx[2] * Ny[2] * any[3]
-        NNx[2,4] = Nx[2] * Ny[1] * any[2] + Nx[2] * Ny[2] * any[4]
+        NNx[1,1] = Nx[1] * Ny[1] * U_any[1] + Nx[1] * Ny[2] * U_any[3]
+        NNx[2,2] = Nx[1] * Ny[1] * U_any[2] + Nx[1] * Ny[2] * U_any[4]
+        NNx[1,3] = Nx[2] * Ny[1] * U_any[1] + Nx[2] * Ny[2] * U_any[3]
+        NNx[2,4] = Nx[2] * Ny[1] * U_any[2] + Nx[2] * Ny[2] * U_any[4]
 
-        NNy[1,1] = Nx[1] * Ny[1] * anx[1] + Nx[2] * Ny[1] * anx[3]
-        NNy[2,2] = Nx[1] * Ny[1] * anx[2] + Nx[2] * Ny[1] * anx[4]
-        NNy[1,3] = Nx[1] * Ny[2] * anx[1] + Nx[2] * Ny[2] * anx[3]
-        NNy[2,4] = Nx[1] * Ny[2] * anx[2] + Nx[2] * Ny[2] * anx[4]
+        NNy[1,1] = Nx[1] * Ny[1] * U_anx[1] + Nx[2] * Ny[1] * U_anx[3]
+        NNy[2,2] = Nx[1] * Ny[1] * U_anx[2] + Nx[2] * Ny[1] * U_anx[4]
+        NNy[1,3] = Nx[1] * Ny[2] * U_anx[1] + Nx[2] * Ny[2] * U_anx[3]
+        NNy[2,4] = Nx[1] * Ny[2] * U_anx[2] + Nx[2] * Ny[2] * U_anx[4]
 
-        BBx[1,1] = dNdx[1] * Ny[1] * any[1] + dNdx[1] * Ny[2] * any[3]
-        BBx[3,1] = Nx[1] * dNdy[1] * any[1] + Nx[1] * dNdy[2] * any[3]
-        BBx[2,2] = Nx[1] * dNdy[1] * any[2] + Nx[1] * dNdy[2] * any[4]
-        BBx[3,2] = dNdx[1] * Ny[1] * any[2] + dNdx[1] * Ny[2] * any[4]
-        BBx[1,3] = dNdx[2] * Ny[1] * any[1] + dNdx[2] * Ny[2] * any[3]
-        BBx[3,3] = Nx[2] * dNdy[1] * any[1] + Nx[2] * dNdy[2] * any[3]
-        BBx[2,4] = Nx[2] * dNdy[1] * any[2] + Nx[2] * dNdy[2] * any[4]
-        BBx[3,4] = dNdx[2] * Ny[1] * any[2] + dNdx[2] * Ny[2] * any[4]
+        BBx[1,1] = dNdx[1] * Ny[1] * U_any[1] + dNdx[1] * Ny[2] * U_any[3]
+        BBx[3,1] = Nx[1] * dNdy[1] * U_any[1] + Nx[1] * dNdy[2] * U_any[3]
+        BBx[2,2] = Nx[1] * dNdy[1] * U_any[2] + Nx[1] * dNdy[2] * U_any[4]
+        BBx[3,2] = dNdx[1] * Ny[1] * U_any[2] + dNdx[1] * Ny[2] * U_any[4]
+        BBx[1,3] = dNdx[2] * Ny[1] * U_any[1] + dNdx[2] * Ny[2] * U_any[3]
+        BBx[3,3] = Nx[2] * dNdy[1] * U_any[1] + Nx[2] * dNdy[2] * U_any[3]
+        BBx[2,4] = Nx[2] * dNdy[1] * U_any[2] + Nx[2] * dNdy[2] * U_any[4]
+        BBx[3,4] = dNdx[2] * Ny[1] * U_any[2] + dNdx[2] * Ny[2] * U_any[4]
 
-        BBy[1,1] = dNdx[1] * Ny[1] * anx[1] + dNdx[2] * Ny[1] * anx[3]
-        BBy[3,1] = Nx[1] * dNdy[1] * anx[1] + Nx[2] * dNdy[1] * anx[3]
-        BBy[2,2] = Nx[1] * dNdy[1] * anx[2] + Nx[2] * dNdy[1] * anx[4]
-        BBy[3,2] = dNdx[1] * Ny[1] * anx[2] + dNdx[2] * Ny[1] * anx[4]
-        BBy[1,3] = dNdx[1] * Ny[2] * anx[1] + dNdx[2] * Ny[2] * anx[3]
-        BBy[3,3] = Nx[1] * dNdy[2] * anx[1] + Nx[2] * dNdy[2] * anx[3]
-        BBy[2,4] = Nx[1] * dNdy[2] * anx[2] + Nx[2] * dNdy[2] * anx[4]
-        BBy[3,4] = dNdx[1] * Ny[2] * anx[2] + dNdx[2] * Ny[2] * anx[4]
+        BBy[1,1] = dNdx[1] * Ny[1] * U_anx[1] + dNdx[2] * Ny[1] * U_anx[3]
+        BBy[3,1] = Nx[1] * dNdy[1] * U_anx[1] + Nx[2] * dNdy[1] * U_anx[3]
+        BBy[2,2] = Nx[1] * dNdy[1] * U_anx[2] + Nx[2] * dNdy[1] * U_anx[4]
+        BBy[3,2] = dNdx[1] * Ny[1] * U_anx[2] + dNdx[2] * Ny[1] * U_anx[4]
+        BBy[1,3] = dNdx[1] * Ny[2] * U_anx[1] + dNdx[2] * Ny[2] * U_anx[3]
+        BBy[3,3] = Nx[1] * dNdy[2] * U_anx[1] + Nx[2] * dNdy[2] * U_anx[3]
+        BBy[2,4] = Nx[1] * dNdy[2] * U_anx[2] + Nx[2] * dNdy[2] * U_anx[4]
+        BBy[3,4] = dNdx[1] * Ny[2] * U_anx[2] + dNdx[2] * Ny[2] * U_anx[4]
 
         ε = buff_coll.ε
         fill!(ε, 0.0)
         ε_m = buff_coll.ε_m
 
         for m = 1:nModes(U)
-            ε_m[1] = dNdx[1] * Ny[1] * ax[1,m] * ay[1,m] + dNdx[2] * Ny[1] * ax[3,m] * ay[1,m] +
-                     dNdx[1] * Ny[2] * ax[1,m] * ay[3,m] + dNdx[2] * Ny[2] * ax[3,m] * ay[3,m]
+            ε_m[1] = dNdx[1] * Ny[1] * U_ax[1,m] * U_ay[1,m] + dNdx[2] * Ny[1] * U_ax[3,m] * U_ay[1,m] +
+                     dNdx[1] * Ny[2] * U_ax[1,m] * U_ay[3,m] + dNdx[2] * Ny[2] * U_ax[3,m] * U_ay[3,m]
 
-            ε_m[2] = Nx[1] * dNdy[1] * ax[2,m] * ay[2,m] + Nx[1] * dNdy[2] * ax[2,m] * ay[4,m] +
-                     Nx[2] * dNdy[1] * ax[4,m] * ay[2,m] + Nx[2] * dNdy[2] * ax[4,m] * ay[4,m]
+            ε_m[2] = Nx[1] * dNdy[1] * U_ax[2,m] * U_ay[2,m] + Nx[1] * dNdy[2] * U_ax[2,m] * U_ay[4,m] +
+                     Nx[2] * dNdy[1] * U_ax[4,m] * U_ay[2,m] + Nx[2] * dNdy[2] * U_ax[4,m] * U_ay[4,m]
 
-            ε_m[3] = Nx[1] * dNdy[1] * ax[1,m] * ay[1,m] + Nx[1] * dNdy[2] * ax[1,m] * ay[3,m] +
-                     Nx[2] * dNdy[1] * ax[3,m] * ay[1,m] + Nx[2] * dNdy[2] * ax[3,m] * ay[3,m] +
-                     dNdx[1] * Ny[1] * ax[2,m] * ay[2,m] + dNdx[2] * Ny[1] * ax[4,m] * ay[2,m] +
-                     dNdx[1] * Ny[2] * ax[2,m] * ay[4,m] + dNdx[2] * Ny[2] * ax[4,m] * ay[4,m]
+            ε_m[3] = Nx[1] * dNdy[1] * U_ax[1,m] * U_ay[1,m] + Nx[1] * dNdy[2] * U_ax[1,m] * U_ay[3,m] +
+                     Nx[2] * dNdy[1] * U_ax[3,m] * U_ay[1,m] + Nx[2] * dNdy[2] * U_ax[3,m] * U_ay[3,m] +
+                     dNdx[1] * Ny[1] * U_ax[2,m] * U_ay[2,m] + dNdx[2] * Ny[1] * U_ax[4,m] * U_ay[2,m] +
+                     dNdx[1] * Ny[2] * U_ax[2,m] * U_ay[4,m] + dNdx[2] * Ny[2] * U_ax[4,m] * U_ay[4,m]
 
             ε += ε_m
         end
+        ε += BBx*U_anx # eller BBy*ay, blir samma
 
-        ε += BBx*anx # eller BBy*ay, blir samma
-        σ = D*ε
+        ##########
+        # Damage #
+        ##########
+        d = 0.0
+        for m = 1:nModes(D)
+            d += dot(Nx,D_ax[:,m]) * dot(Ny,D_ay[:,m])
+        end
+
+        rf = 1e-6
+        σ_degradation = (1.0-d)^2 + rf
+        println("d = $d")
+        println("σ_degradation = $σ_degradation")
+        error()
+
+        # Stress
+        σ = D_mat*ε * σ_degradation
 
 
         dΩ = U.fev.detJdV[q_point]
@@ -284,16 +250,20 @@ end
 # Damage internal force as function of displacement #
 #####################################################
 
-function DU_intf{T}(an::Vector{T},a::Matrix,x,U::PGDFunction,D_mat::Matrix,b::Vector=zeros(2))
-    # an is the unknowns
-    # a are the already computed modes
-    # 4 node quadrilateral element
-    anx = an[1:4] # Not general
-    any = an[5:8]
-    ax = a[1:4,:]
-    ay = a[5:8,:]
+function DU_intf{T}(D_an::Vector{T},D_a::Matrix,D::PGDFunction,U_a::Matrix,U::PGDFunction,x,D_mat::Matrix,b::Vector=zeros(2))
 
-    buff_coll = get_buffer(buff_colls, T)
+    # Damage
+    D_anx = D_an[1:2]
+    D_any = D_an[3:4]
+    D_ax = D_a[1:2,:]
+    D_ay = D_a[3:4,:]
+
+    # Displacement
+    U_ax = U_a[1:4,:]
+    U_ay = U_a[5:8,:]
+
+
+    buff_coll = get_buffer(DU_buff_colls, T)
 
     g = buff_coll.g # Not general
 
@@ -330,55 +300,70 @@ function DU_intf{T}(an::Vector{T},a::Matrix,x,U::PGDFunction,D_mat::Matrix,b::Ve
         dNdy = reinterpret(Float64,dNdy,(size(dNdy[1],1),length(dNdy)))
 
         # TODO: Simplify these expressions, potentially using ContMechTensors.jl somehow and include the Hadamard product.
-        NNx[1,1] = Nx[1] * Ny[1] * any[1] + Nx[1] * Ny[2] * any[3]
-        NNx[2,2] = Nx[1] * Ny[1] * any[2] + Nx[1] * Ny[2] * any[4]
-        NNx[1,3] = Nx[2] * Ny[1] * any[1] + Nx[2] * Ny[2] * any[3]
-        NNx[2,4] = Nx[2] * Ny[1] * any[2] + Nx[2] * Ny[2] * any[4]
+        NNx[1,1] = Nx[1] * Ny[1] * U_any[1] + Nx[1] * Ny[2] * U_any[3]
+        NNx[2,2] = Nx[1] * Ny[1] * U_any[2] + Nx[1] * Ny[2] * U_any[4]
+        NNx[1,3] = Nx[2] * Ny[1] * U_any[1] + Nx[2] * Ny[2] * U_any[3]
+        NNx[2,4] = Nx[2] * Ny[1] * U_any[2] + Nx[2] * Ny[2] * U_any[4]
 
-        NNy[1,1] = Nx[1] * Ny[1] * anx[1] + Nx[2] * Ny[1] * anx[3]
-        NNy[2,2] = Nx[1] * Ny[1] * anx[2] + Nx[2] * Ny[1] * anx[4]
-        NNy[1,3] = Nx[1] * Ny[2] * anx[1] + Nx[2] * Ny[2] * anx[3]
-        NNy[2,4] = Nx[1] * Ny[2] * anx[2] + Nx[2] * Ny[2] * anx[4]
+        NNy[1,1] = Nx[1] * Ny[1] * U_anx[1] + Nx[2] * Ny[1] * U_anx[3]
+        NNy[2,2] = Nx[1] * Ny[1] * U_anx[2] + Nx[2] * Ny[1] * U_anx[4]
+        NNy[1,3] = Nx[1] * Ny[2] * U_anx[1] + Nx[2] * Ny[2] * U_anx[3]
+        NNy[2,4] = Nx[1] * Ny[2] * U_anx[2] + Nx[2] * Ny[2] * U_anx[4]
 
-        BBx[1,1] = dNdx[1] * Ny[1] * any[1] + dNdx[1] * Ny[2] * any[3]
-        BBx[3,1] = Nx[1] * dNdy[1] * any[1] + Nx[1] * dNdy[2] * any[3]
-        BBx[2,2] = Nx[1] * dNdy[1] * any[2] + Nx[1] * dNdy[2] * any[4]
-        BBx[3,2] = dNdx[1] * Ny[1] * any[2] + dNdx[1] * Ny[2] * any[4]
-        BBx[1,3] = dNdx[2] * Ny[1] * any[1] + dNdx[2] * Ny[2] * any[3]
-        BBx[3,3] = Nx[2] * dNdy[1] * any[1] + Nx[2] * dNdy[2] * any[3]
-        BBx[2,4] = Nx[2] * dNdy[1] * any[2] + Nx[2] * dNdy[2] * any[4]
-        BBx[3,4] = dNdx[2] * Ny[1] * any[2] + dNdx[2] * Ny[2] * any[4]
+        BBx[1,1] = dNdx[1] * Ny[1] * U_any[1] + dNdx[1] * Ny[2] * U_any[3]
+        BBx[3,1] = Nx[1] * dNdy[1] * U_any[1] + Nx[1] * dNdy[2] * U_any[3]
+        BBx[2,2] = Nx[1] * dNdy[1] * U_any[2] + Nx[1] * dNdy[2] * U_any[4]
+        BBx[3,2] = dNdx[1] * Ny[1] * U_any[2] + dNdx[1] * Ny[2] * U_any[4]
+        BBx[1,3] = dNdx[2] * Ny[1] * U_any[1] + dNdx[2] * Ny[2] * U_any[3]
+        BBx[3,3] = Nx[2] * dNdy[1] * U_any[1] + Nx[2] * dNdy[2] * U_any[3]
+        BBx[2,4] = Nx[2] * dNdy[1] * U_any[2] + Nx[2] * dNdy[2] * U_any[4]
+        BBx[3,4] = dNdx[2] * Ny[1] * U_any[2] + dNdx[2] * Ny[2] * U_any[4]
 
-        BBy[1,1] = dNdx[1] * Ny[1] * anx[1] + dNdx[2] * Ny[1] * anx[3]
-        BBy[3,1] = Nx[1] * dNdy[1] * anx[1] + Nx[2] * dNdy[1] * anx[3]
-        BBy[2,2] = Nx[1] * dNdy[1] * anx[2] + Nx[2] * dNdy[1] * anx[4]
-        BBy[3,2] = dNdx[1] * Ny[1] * anx[2] + dNdx[2] * Ny[1] * anx[4]
-        BBy[1,3] = dNdx[1] * Ny[2] * anx[1] + dNdx[2] * Ny[2] * anx[3]
-        BBy[3,3] = Nx[1] * dNdy[2] * anx[1] + Nx[2] * dNdy[2] * anx[3]
-        BBy[2,4] = Nx[1] * dNdy[2] * anx[2] + Nx[2] * dNdy[2] * anx[4]
-        BBy[3,4] = dNdx[1] * Ny[2] * anx[2] + dNdx[2] * Ny[2] * anx[4]
+        BBy[1,1] = dNdx[1] * Ny[1] * U_anx[1] + dNdx[2] * Ny[1] * U_anx[3]
+        BBy[3,1] = Nx[1] * dNdy[1] * U_anx[1] + Nx[2] * dNdy[1] * U_anx[3]
+        BBy[2,2] = Nx[1] * dNdy[1] * U_anx[2] + Nx[2] * dNdy[1] * U_anx[4]
+        BBy[3,2] = dNdx[1] * Ny[1] * U_anx[2] + dNdx[2] * Ny[1] * U_anx[4]
+        BBy[1,3] = dNdx[1] * Ny[2] * U_anx[1] + dNdx[2] * Ny[2] * U_anx[3]
+        BBy[3,3] = Nx[1] * dNdy[2] * U_anx[1] + Nx[2] * dNdy[2] * U_anx[3]
+        BBy[2,4] = Nx[1] * dNdy[2] * U_anx[2] + Nx[2] * dNdy[2] * U_anx[4]
+        BBy[3,4] = dNdx[1] * Ny[2] * U_anx[2] + dNdx[2] * Ny[2] * U_anx[4]
 
         ε = buff_coll.ε
         fill!(ε, 0.0)
         ε_m = buff_coll.ε_m
 
         for m = 1:nModes(U)
-            ε_m[1] = dNdx[1] * Ny[1] * ax[1,m] * ay[1,m] + dNdx[2] * Ny[1] * ax[3,m] * ay[1,m] +
-                     dNdx[1] * Ny[2] * ax[1,m] * ay[3,m] + dNdx[2] * Ny[2] * ax[3,m] * ay[3,m]
+            ε_m[1] = dNdx[1] * Ny[1] * U_ax[1,m] * U_ay[1,m] + dNdx[2] * Ny[1] * U_ax[3,m] * U_ay[1,m] +
+                     dNdx[1] * Ny[2] * U_ax[1,m] * U_ay[3,m] + dNdx[2] * Ny[2] * U_ax[3,m] * U_ay[3,m]
 
-            ε_m[2] = Nx[1] * dNdy[1] * ax[2,m] * ay[2,m] + Nx[1] * dNdy[2] * ax[2,m] * ay[4,m] +
-                     Nx[2] * dNdy[1] * ax[4,m] * ay[2,m] + Nx[2] * dNdy[2] * ax[4,m] * ay[4,m]
+            ε_m[2] = Nx[1] * dNdy[1] * U_ax[2,m] * U_ay[2,m] + Nx[1] * dNdy[2] * U_ax[2,m] * U_ay[4,m] +
+                     Nx[2] * dNdy[1] * U_ax[4,m] * U_ay[2,m] + Nx[2] * dNdy[2] * U_ax[4,m] * U_ay[4,m]
 
-            ε_m[3] = Nx[1] * dNdy[1] * ax[1,m] * ay[1,m] + Nx[1] * dNdy[2] * ax[1,m] * ay[3,m] +
-                     Nx[2] * dNdy[1] * ax[3,m] * ay[1,m] + Nx[2] * dNdy[2] * ax[3,m] * ay[3,m] +
-                     dNdx[1] * Ny[1] * ax[2,m] * ay[2,m] + dNdx[2] * Ny[1] * ax[4,m] * ay[2,m] +
-                     dNdx[1] * Ny[2] * ax[2,m] * ay[4,m] + dNdx[2] * Ny[2] * ax[4,m] * ay[4,m]
+            ε_m[3] = Nx[1] * dNdy[1] * U_ax[1,m] * U_ay[1,m] + Nx[1] * dNdy[2] * U_ax[1,m] * U_ay[3,m] +
+                     Nx[2] * dNdy[1] * U_ax[3,m] * U_ay[1,m] + Nx[2] * dNdy[2] * U_ax[3,m] * U_ay[3,m] +
+                     dNdx[1] * Ny[1] * U_ax[2,m] * U_ay[2,m] + dNdx[2] * Ny[1] * U_ax[4,m] * U_ay[2,m] +
+                     dNdx[1] * Ny[2] * U_ax[2,m] * U_ay[4,m] + dNdx[2] * Ny[2] * U_ax[4,m] * U_ay[4,m]
 
             ε += ε_m
         end
+        ε += BBx*U_anx # eller BBy*ay, blir samma
 
-        ε += BBx*anx # eller BBy*ay, blir samma
-        σ = D_mat*ε
+        ##########
+        # Damage #
+        ##########
+        d = 0.0
+        for m = 1:nModes(D)
+            d += dot(Nx,D_ax[:,m]) * dot(Ny,D_ay[:,m])
+        end
+
+        rf = 1e-6
+        σ_degradation = (1.0-d)^2 + rf
+        println("d = $d")
+        println("σ_degradation = $σ_degradation")
+        error()
+
+        # Stress
+        σ = D_mat*ε * σ_degradation
 
 
         dΩ = U.fev.detJdV[q_point]
