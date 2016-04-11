@@ -150,7 +150,7 @@ function main()
 
         # Write to file
         vtkwriter(pvd,U_a,U,loadstep)
-        copy!(U_a_old,U_a)
+        copy!(U_a_old,U_a)r
         U.modes = 1
 
     end # of loadstepping
