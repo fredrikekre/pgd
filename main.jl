@@ -5,16 +5,16 @@ using ContMechTensors
 import PyPlot
 using WriteVTK
 
+include("src/material_params.jl")
 include("src/meshgenerator.jl")
 include("src/PGDmodule.jl")
 include("src/utilities.jl")
 include("src/elementFunctions.jl")
 include("src/globResK.jl")
 include("src/visualize.jl")
-include("src/solvers.jl")
 include("src/boundaryConditions.jl")
+include("src/solvers.jl")
 include("src/vtkwriter.jl")
-include("src/material_params.jl")
 
 function main()
 
@@ -23,7 +23,7 @@ function main()
     ############
     xStart = 0; yStart = 0
     xEnd = 1; yEnd = 1
-    xnEl = 50; ynEl = 50
+    xnEl = 10; ynEl = 10
 
 
     ###################
@@ -90,14 +90,19 @@ function main()
     U_n_modes = 2
     D_n_modes = 2
 
-    n_loadsteps = 2
+    n_loadsteps = 10
     max_displacement = 0.2
 
     #######################
     # Material parameters #
     #######################
-    E = 1; ν = 0.3
-    D_mat = CALFEM.hooke(2,E,ν); D_mat = D_mat[[1,2,4],[1,2,4]]
+    E = 1.0; ν = 0.3
+    U_mp = LinearElastic(:E,E,:ν,ν)
+    U_mp_tangent = TangentStiffness(U_mp)
+
+    gc = 0.01
+    l = 0.5
+    D_mp = PhaseFieldDamage(gc,l)
 
 
     #######################
@@ -134,7 +139,7 @@ function main()
             # tic()
             newMode = UD_ModeSolver(U_a,U_a_old,U,U_bc,U_edof,
                                     D_a,D_a_old,D,D_bc,D_edof,
-                                    D_mat,b,modeItr)
+                                    U_mp_tangent,b,modeItr)
 
             U_a[:,modeItr] = newMode # Maybe change this to U_a = [U_a newMode] instead for arbitrary number of modes
             U.modes = modeItr
@@ -144,9 +149,10 @@ function main()
         # Damage as function of the displacement
         for modeItr = 2:(D_n_modes + 1)
             # tic()
+            Ψ = 0.0
             newMode = DU_ModeSolver(D_a,D_a_old,D,D_bc,D_edof,
                                     U_a,U_a_old,U,U_bc,U_edof,
-                                    D_mat,b,modeItr)
+                                    D_mp,Ψ,modeItr)
             D_a[:,modeItr] = newMode # Maybe change this to D_a = [D_a newMode] instead for arbitrary number of modes
             D.modes = modeItr
             # toc()
@@ -154,7 +160,7 @@ function main()
 
         # Write to file
         vtkwriter(pvd,U_a,U,D_a,D,loadstep)
-        vtkwriter(pvd,U_a,U,loadstep)
+        # vtkwriter(pvd,U_a,U,loadstep)
         copy!(U_a_old,U_a)
         copy!(D_a_old,D_a)
         U.modes = 1
@@ -169,4 +175,4 @@ tic()
 o = main()
 toc()
 
-# visualize(o...)
+visualize(o...)
