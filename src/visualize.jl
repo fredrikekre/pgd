@@ -1,33 +1,28 @@
 
-function visualize(a,U)
+function visualize(U_a,U,D_a,D)
     # Plots the modes
 
-    nModes = size(a,2)
+    ################
+    # Displacement #
+    ################
+    U_nModes = size(U_a,2)
 
     Ux_dof = 1:2:(U.components[1].mesh.nDofs-1)
     Vx_dof = 2:2:(U.components[1].mesh.nDofs)
-    Uy_dof = (U.components[1].mesh.nDofs+1):2:(U.components[1].mesh.nDofs+U.components[1].mesh.nDofs-1)
-    Vy_dof = (U.components[1].mesh.nDofs+2):2:(U.components[1].mesh.nDofs+U.components[1].mesh.nDofs)
+    Uy_dof = (U.components[1].mesh.nDofs+1):2:(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs-1)
+    Vy_dof = (U.components[1].mesh.nDofs+2):2:(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs)
 
-    Ux = a[Ux_dof,:]
-    Vx = a[Vx_dof,:]
-
-
-    Uy = a[Uy_dof,:]
-    Vy = a[Vy_dof,:]
-
-    # println("Orthogonality for Ux: 2⋅1 = $(dot(Ux[:,2],Ux[:,1])), 3⋅1 = $(dot(Ux[:,3],Ux[:,1])), 4⋅1 = $(dot(Ux[:,4],Ux[:,1])), 5⋅1 = $(dot(Ux[:,5],Ux[:,1]))")
-    # println("Orthogonality for Vx: 2⋅1 = $(dot(Vx[:,2],Vx[:,1])), 3⋅1 = $(dot(Vx[:,3],Vx[:,1])), 4⋅1 = $(dot(Vx[:,4],Vx[:,1])), 5⋅1 = $(dot(Vx[:,5],Vx[:,1]))")
-    # println("Orthogonality for Uy: 2⋅1 = $(dot(Uy[:,2],Uy[:,1])), 3⋅1 = $(dot(Uy[:,3],Uy[:,1])), 4⋅1 = $(dot(Uy[:,4],Uy[:,1])), 5⋅1 = $(dot(Uy[:,5],Uy[:,1]))")
-    # println("Orthogonality for Vy: 2⋅1 = $(dot(Vy[:,2],Vy[:,1])), 3⋅1 = $(dot(Vy[:,3],Vy[:,1])), 4⋅1 = $(dot(Vy[:,4],Vy[:,1])), 5⋅1 = $(dot(Vy[:,5],Vy[:,1]))")
+    Ux = U_a[Ux_dof,:]
+    Vx = U_a[Vx_dof,:]
 
 
-    # u = Ux*Uy'
-    # v = Vx*Vy'
+    Uy = U_a[Uy_dof,:]
+    Vy = U_a[Vy_dof,:]
+
     u = Uy*Ux'
     v = Vy*Vx'
 
-    for i = 1:nModes
+    for i = 1:U_nModes
         PyPlot.figure(1)
         PyPlot.title("Ux")
         PyPlot.plot(U.components[1].mesh.x,Ux[:,i])
@@ -42,59 +37,26 @@ function visualize(a,U)
         PyPlot.plot(U.components[2].mesh.x,Vy[:,i])
     end
 
-    # return 1
+    ##########
+    # Damage #
+    ##########
+    D_nModes = size(D_a,2)
 
+    Dx_dof = 1:(D.components[1].mesh.nDofs)
+    Dy_dof = (D.components[1].mesh.nDofs+1):(D.components[1].mesh.nDofs+D.components[2].mesh.nDofs)
 
-    # Plot displacement field
-    x = U.components[1].mesh.x; x = repmat(x,1,length(U.components[2].mesh.x))'
-    y = U.components[2].mesh.x; y = repmat(y,1,length(U.components[1].mesh.x))
+    Dx = D_a[Dx_dof,:]
+    Dy = D_a[Dy_dof,:]
 
-    #figure(5)
-    #plot_wireframe(x,y ,0*u,color = "red")
-    #plot_wireframe(x+u,y+v ,0*u)
-    #figure(6)
-    #plot_wireframe(X,Y,v)
-    #figure(7)
-    #uu = (u.^2 + v.^2).^(1/2)
-    #plot_wireframe(X,Y,uu)
-    #return u,v,X,Y
+    d = Dy*Dx'
 
-    # Plotta error mot FEM
-    # figure(6)
-    # semilogy(1:nModes,FEerror[1,:]',"-o",label = "u100")
-    # semilogy(1:nModes,FEerror[2,:]',"-s",label = "u1000")
-    # semilogy(1:nModes,FEerror[3,:]',"-^",label = "v100")
-    # semilogy(1:nModes,FEerror[4,:]',"-D",label = "v1000")
-
-    # legend(bbox_to_anchor=(1,0),loc=4)
-    # xlabel("Number of modes")
-    # ylabel("|uPGD-uFEM|/|uFEM|")
-
-    # Write VTK to show in ParaView
-    X = zeros(U.components[1].mesh.nEl+1,U.components[2].mesh.nEl+1,1)
-    Y = copy(X); Z = copy(X)
-    X[:,:,1] = x
-    Y[:,:,1] = y
-    vtkfile = JuAFEM.vtk_grid("PGD_displacement_staggered", X,Y,Z,compress=false,append=false)
-    vtkdisp = zeros(3,U.components[1].mesh.nEl+1,U.components[2].mesh.nEl+1,1)
-    vtkdisp[1,:,:,1] = u
-    vtkdisp[2,:,:,1] = v
-    JuAFEM.vtk_point_data(vtkfile, vtkdisp, "displacement_staggered")
-    # #println("Norm of error u = $(norm(u-uFEM1000)/norm(uFEM1000))")
-    # #println("Norm of error v = $(norm(v-vFEM1000)/norm(vFEM1000))")
-
-    # vtkdisp = zeros(3,xmesh.nEl+1,ymesh.nEl+1,1)
-    # vtkdisp[1,:,:,1] = u-uFEM100
-    # vtkdisp[2,:,:,1] = v-vFEM100
-    # JuAFEM.vtk_point_data(vtkfile, vtkdisp, "PGD-FEM100")
-    
-    # vtkdisp = zeros(3,xmesh.nEl+1,ymesh.nEl+1,1)
-    # vtkdisp[1,:,:,1] = u-uFEM1000
-    # vtkdisp[2,:,:,1] = v-vFEM1000
-    # JuAFEM.vtk_point_data(vtkfile, vtkdisp, "PGD-FEM1000")
-
-    JuAFEM.vtk_save(vtkfile)
-
-
+    for i = 1:D_nModes
+        PyPlot.figure(5)
+        PyPlot.title("Dx")
+        PyPlot.plot(D.components[1].mesh.x,Dx[:,i])
+        PyPlot.figure(6)
+        PyPlot.title("Dy")
+        PyPlot.plot(D.components[2].mesh.x,Dy[:,i])
+    end
 
 end

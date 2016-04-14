@@ -1,22 +1,8 @@
-function vtkwriter(pvd,a,U,step)
-    nModes = size(a,2)
+function vtkwriter(pvd,U_a,U,step)
 
-    Ux_dof = 1:2:(U.components[1].mesh.nDofs-1)
-    Vx_dof = 2:2:(U.components[1].mesh.nDofs)
-    Uy_dof = (U.components[1].mesh.nDofs+1):2:(U.components[1].mesh.nDofs+U.components[1].mesh.nDofs-1)
-    Vy_dof = (U.components[1].mesh.nDofs+2):2:(U.components[1].mesh.nDofs+U.components[1].mesh.nDofs)
-
-    Ux = a[Ux_dof,:]
-    Vx = a[Vx_dof,:]
-
-    Uy = a[Uy_dof,:]
-    Vy = a[Vy_dof,:]
-
-    # u = Ux*Uy'
-    # v = Vx*Vy'
-    u = Uy*Ux'
-    v = Vy*Vx'
-
+    ###############
+    # Set up grid #
+    ###############
     x = U.components[1].mesh.x; x = repmat(x,1,length(U.components[2].mesh.x))'
     y = U.components[2].mesh.x; y = repmat(y,1,length(U.components[1].mesh.x))
 
@@ -25,13 +11,98 @@ function vtkwriter(pvd,a,U,step)
     X[:,:,1] = x
     Y[:,:,1] = y
 
-    # Write VTK to show in ParaView
+    # Create file
     vtkfile = vtk_grid("./resultfiles/step_$step",X,Y,Z,compress=false,append=false) # no compress and append due to Zlib problem
+
+    #################
+    # Displacements #
+    #################
+    U_nModes = size(U_a,2)
+
+    Ux_dof = 1:2:(U.components[1].mesh.nDofs-1)
+    Vx_dof = 2:2:(U.components[1].mesh.nDofs)
+    Uy_dof = (U.components[1].mesh.nDofs+1):2:(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs-1)
+    Vy_dof = (U.components[1].mesh.nDofs+2):2:(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs)
+
+    Ux = U_a[Ux_dof,:]
+    Vx = U_a[Vx_dof,:]
+
+    Uy = U_a[Uy_dof,:]
+    Vy = U_a[Vy_dof,:]
+
+    u = Uy*Ux'
+    v = Vy*Vx'
+
     vtkdisp = zeros(3,U.components[1].mesh.nEl+1,U.components[2].mesh.nEl+1,1)
     vtkdisp[1,:,:,1] = u
     vtkdisp[2,:,:,1] = v
     vtk_point_data(vtkfile, vtkdisp, "displacement")
 
+    # Save to collection
+    collection_add_timestep(pvd,vtkfile,float(step))
+
+end
+
+function vtkwriter(pvd,U_a,U,D_a,D,step)
+
+    ###############
+    # Set up grid #
+    ###############
+    x = U.components[1].mesh.x; x = repmat(x,1,length(U.components[2].mesh.x))'
+    y = U.components[2].mesh.x; y = repmat(y,1,length(U.components[1].mesh.x))
+
+    X = zeros(U.components[1].mesh.nEl+1,U.components[2].mesh.nEl+1,1)
+    Y = copy(X); Z = copy(X)
+    X[:,:,1] = x
+    Y[:,:,1] = y
+
+    # Create file
+    vtkfile = vtk_grid("./resultfiles/step_$step",X,Y,Z,compress=false,append=false) # no compress and append due to Zlib problem
+
+    #################
+    # Displacements #
+    #################
+    U_nModes = size(U_a,2)
+
+    Ux_dof = 1:2:(U.components[1].mesh.nDofs-1)
+    Vx_dof = 2:2:(U.components[1].mesh.nDofs)
+    Uy_dof = (U.components[1].mesh.nDofs+1):2:(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs-1)
+    Vy_dof = (U.components[1].mesh.nDofs+2):2:(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs)
+
+    Ux = U_a[Ux_dof,:]
+    Vx = U_a[Vx_dof,:]
+
+    Uy = U_a[Uy_dof,:]
+    Vy = U_a[Vy_dof,:]
+
+    u = Uy*Ux'
+    v = Vy*Vx'
+
+    vtkdisp = zeros(3,U.components[1].mesh.nEl+1,U.components[2].mesh.nEl+1,1)
+    vtkdisp[1,:,:,1] = u
+    vtkdisp[2,:,:,1] = v
+    vtk_point_data(vtkfile, vtkdisp, "displacement")
+
+    ##########
+    # Damage #
+    ##########
+    D_nModes = size(D_a,2)
+
+    Dx_dof = 1:(U.components[1].mesh.nDofs)
+    Dy_dof = (U.components[1].mesh.nDofs+1):(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs)
+
+    Dx = D_a[Dx_dof,:]
+
+    Dy = D_a[Dy_dof,:]
+
+    d = Dy*Dx'
+
+    vtkdamage = zeros(D.components[1].mesh.nEl+1,D.components[2].mesh.nEl+1,1)
+    vtkdamage[:,:,1] = d
+    vtk_point_data(vtkfile, vtkdamage, "damage")
+
+
+    # Save to collection
     collection_add_timestep(pvd,vtkfile,float(step))
 
 end

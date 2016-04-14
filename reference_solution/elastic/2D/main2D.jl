@@ -22,7 +22,7 @@ function main()
 
     # Function spaces
     function_space = Lagrange{2, JuAFEM.RefCube, 1}()
-    quad_rule = GaussQuadrature(Dim{2}, RefCube(), 2)
+    quad_rule = QuadratureRule(Dim{2}, RefCube(), 2)
     u_fe_values = FEValues(Float64, quad_rule, function_space)
 
     # Material
