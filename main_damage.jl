@@ -16,9 +16,10 @@ include("src/boundaryConditions.jl")
 include("src/solvers.jl")
 include("src/vtkwriter.jl")
 
-################################
-# Main file for PGD elasticity #
-################################
+
+############################################
+# Main file for PGD elasticity with damage #
+############################################
 
 function main()
 

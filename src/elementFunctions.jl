@@ -4,14 +4,15 @@ include("buffers.jl")
 # Displacement internal force #
 ###############################
 
-function U_intf{T}(an::Vector{T},a::Matrix,x,U::PGDFunction,D::Matrix,b::Vector=zeros(2))
-    # an is the unknowns
-    # a are the already computed modes
+function U_intf{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,
+                                   x,U_mp_tangent::Matrix,b::Vector=zeros(2))
+    # U_an is the unknowns
+    # U_a are the already computed modes
     # 4 node quadrilateral element
-    anx = an[1:4] # Not general
-    any = an[5:8]
-    ax = a[1:4,:]
-    ay = a[5:8,:]
+    U_anx = U_an[1:4] # Not general
+    U_any = U_an[5:8]
+    U_ax = U_a[1:4,:]
+    U_ay = U_a[5:8,:]
 
     buff_coll = get_buffer(U_buff_colls, T)
 
@@ -50,54 +51,54 @@ function U_intf{T}(an::Vector{T},a::Matrix,x,U::PGDFunction,D::Matrix,b::Vector=
         dNdy = reinterpret(Float64,dNdy,(size(dNdy[1],1),length(dNdy)))
 
         # TODO: Simplify these expressions, potentially using ContMechTensors.jl somehow and include the Hadamard product.
-        NNx[1,1] = Nx[1] * Ny[1] * any[1] + Nx[1] * Ny[2] * any[3]
-        NNx[2,2] = Nx[1] * Ny[1] * any[2] + Nx[1] * Ny[2] * any[4]
-        NNx[1,3] = Nx[2] * Ny[1] * any[1] + Nx[2] * Ny[2] * any[3]
-        NNx[2,4] = Nx[2] * Ny[1] * any[2] + Nx[2] * Ny[2] * any[4]
+        NNx[1,1] = Nx[1] * Ny[1] * U_any[1] + Nx[1] * Ny[2] * U_any[3]
+        NNx[2,2] = Nx[1] * Ny[1] * U_any[2] + Nx[1] * Ny[2] * U_any[4]
+        NNx[1,3] = Nx[2] * Ny[1] * U_any[1] + Nx[2] * Ny[2] * U_any[3]
+        NNx[2,4] = Nx[2] * Ny[1] * U_any[2] + Nx[2] * Ny[2] * U_any[4]
 
-        NNy[1,1] = Nx[1] * Ny[1] * anx[1] + Nx[2] * Ny[1] * anx[3]
-        NNy[2,2] = Nx[1] * Ny[1] * anx[2] + Nx[2] * Ny[1] * anx[4]
-        NNy[1,3] = Nx[1] * Ny[2] * anx[1] + Nx[2] * Ny[2] * anx[3]
-        NNy[2,4] = Nx[1] * Ny[2] * anx[2] + Nx[2] * Ny[2] * anx[4]
+        NNy[1,1] = Nx[1] * Ny[1] * U_anx[1] + Nx[2] * Ny[1] * U_anx[3]
+        NNy[2,2] = Nx[1] * Ny[1] * U_anx[2] + Nx[2] * Ny[1] * U_anx[4]
+        NNy[1,3] = Nx[1] * Ny[2] * U_anx[1] + Nx[2] * Ny[2] * U_anx[3]
+        NNy[2,4] = Nx[1] * Ny[2] * U_anx[2] + Nx[2] * Ny[2] * U_anx[4]
 
-        BBx[1,1] = dNdx[1] * Ny[1] * any[1] + dNdx[1] * Ny[2] * any[3]
-        BBx[3,1] = Nx[1] * dNdy[1] * any[1] + Nx[1] * dNdy[2] * any[3]
-        BBx[2,2] = Nx[1] * dNdy[1] * any[2] + Nx[1] * dNdy[2] * any[4]
-        BBx[3,2] = dNdx[1] * Ny[1] * any[2] + dNdx[1] * Ny[2] * any[4]
-        BBx[1,3] = dNdx[2] * Ny[1] * any[1] + dNdx[2] * Ny[2] * any[3]
-        BBx[3,3] = Nx[2] * dNdy[1] * any[1] + Nx[2] * dNdy[2] * any[3]
-        BBx[2,4] = Nx[2] * dNdy[1] * any[2] + Nx[2] * dNdy[2] * any[4]
-        BBx[3,4] = dNdx[2] * Ny[1] * any[2] + dNdx[2] * Ny[2] * any[4]
+        BBx[1,1] = dNdx[1] * Ny[1] * U_any[1] + dNdx[1] * Ny[2] * U_any[3]
+        BBx[3,1] = Nx[1] * dNdy[1] * U_any[1] + Nx[1] * dNdy[2] * U_any[3]
+        BBx[2,2] = Nx[1] * dNdy[1] * U_any[2] + Nx[1] * dNdy[2] * U_any[4]
+        BBx[3,2] = dNdx[1] * Ny[1] * U_any[2] + dNdx[1] * Ny[2] * U_any[4]
+        BBx[1,3] = dNdx[2] * Ny[1] * U_any[1] + dNdx[2] * Ny[2] * U_any[3]
+        BBx[3,3] = Nx[2] * dNdy[1] * U_any[1] + Nx[2] * dNdy[2] * U_any[3]
+        BBx[2,4] = Nx[2] * dNdy[1] * U_any[2] + Nx[2] * dNdy[2] * U_any[4]
+        BBx[3,4] = dNdx[2] * Ny[1] * U_any[2] + dNdx[2] * Ny[2] * U_any[4]
 
-        BBy[1,1] = dNdx[1] * Ny[1] * anx[1] + dNdx[2] * Ny[1] * anx[3]
-        BBy[3,1] = Nx[1] * dNdy[1] * anx[1] + Nx[2] * dNdy[1] * anx[3]
-        BBy[2,2] = Nx[1] * dNdy[1] * anx[2] + Nx[2] * dNdy[1] * anx[4]
-        BBy[3,2] = dNdx[1] * Ny[1] * anx[2] + dNdx[2] * Ny[1] * anx[4]
-        BBy[1,3] = dNdx[1] * Ny[2] * anx[1] + dNdx[2] * Ny[2] * anx[3]
-        BBy[3,3] = Nx[1] * dNdy[2] * anx[1] + Nx[2] * dNdy[2] * anx[3]
-        BBy[2,4] = Nx[1] * dNdy[2] * anx[2] + Nx[2] * dNdy[2] * anx[4]
-        BBy[3,4] = dNdx[1] * Ny[2] * anx[2] + dNdx[2] * Ny[2] * anx[4]
+        BBy[1,1] = dNdx[1] * Ny[1] * U_anx[1] + dNdx[2] * Ny[1] * U_anx[3]
+        BBy[3,1] = Nx[1] * dNdy[1] * U_anx[1] + Nx[2] * dNdy[1] * U_anx[3]
+        BBy[2,2] = Nx[1] * dNdy[1] * U_anx[2] + Nx[2] * dNdy[1] * U_anx[4]
+        BBy[3,2] = dNdx[1] * Ny[1] * U_anx[2] + dNdx[2] * Ny[1] * U_anx[4]
+        BBy[1,3] = dNdx[1] * Ny[2] * U_anx[1] + dNdx[2] * Ny[2] * U_anx[3]
+        BBy[3,3] = Nx[1] * dNdy[2] * U_anx[1] + Nx[2] * dNdy[2] * U_anx[3]
+        BBy[2,4] = Nx[1] * dNdy[2] * U_anx[2] + Nx[2] * dNdy[2] * U_anx[4]
+        BBy[3,4] = dNdx[1] * Ny[2] * U_anx[2] + dNdx[2] * Ny[2] * U_anx[4]
 
         ε = buff_coll.ε
         fill!(ε, 0.0)
         ε_m = buff_coll.ε_m
 
         for m = 1:nModes(U)
-            ε_m[1] = dNdx[1] * Ny[1] * ax[1,m] * ay[1,m] + dNdx[2] * Ny[1] * ax[3,m] * ay[1,m] +
-                     dNdx[1] * Ny[2] * ax[1,m] * ay[3,m] + dNdx[2] * Ny[2] * ax[3,m] * ay[3,m]
+            ε_m[1] = dNdx[1] * Ny[1] * U_ax[1,m] * U_ay[1,m] + dNdx[2] * Ny[1] * U_ax[3,m] * U_ay[1,m] +
+                     dNdx[1] * Ny[2] * U_ax[1,m] * U_ay[3,m] + dNdx[2] * Ny[2] * U_ax[3,m] * U_ay[3,m]
 
-            ε_m[2] = Nx[1] * dNdy[1] * ax[2,m] * ay[2,m] + Nx[1] * dNdy[2] * ax[2,m] * ay[4,m] +
-                     Nx[2] * dNdy[1] * ax[4,m] * ay[2,m] + Nx[2] * dNdy[2] * ax[4,m] * ay[4,m]
+            ε_m[2] = Nx[1] * dNdy[1] * U_ax[2,m] * U_ay[2,m] + Nx[1] * dNdy[2] * U_ax[2,m] * U_ay[4,m] +
+                     Nx[2] * dNdy[1] * U_ax[4,m] * U_ay[2,m] + Nx[2] * dNdy[2] * U_ax[4,m] * U_ay[4,m]
 
-            ε_m[3] = Nx[1] * dNdy[1] * ax[1,m] * ay[1,m] + Nx[1] * dNdy[2] * ax[1,m] * ay[3,m] +
-                     Nx[2] * dNdy[1] * ax[3,m] * ay[1,m] + Nx[2] * dNdy[2] * ax[3,m] * ay[3,m] +
-                     dNdx[1] * Ny[1] * ax[2,m] * ay[2,m] + dNdx[2] * Ny[1] * ax[4,m] * ay[2,m] +
-                     dNdx[1] * Ny[2] * ax[2,m] * ay[4,m] + dNdx[2] * Ny[2] * ax[4,m] * ay[4,m]
+            ε_m[3] = Nx[1] * dNdy[1] * U_ax[1,m] * U_ay[1,m] + Nx[1] * dNdy[2] * U_ax[1,m] * U_ay[3,m] +
+                     Nx[2] * dNdy[1] * U_ax[3,m] * U_ay[1,m] + Nx[2] * dNdy[2] * U_ax[3,m] * U_ay[3,m] +
+                     dNdx[1] * Ny[1] * U_ax[2,m] * U_ay[2,m] + dNdx[2] * Ny[1] * U_ax[4,m] * U_ay[2,m] +
+                     dNdx[1] * Ny[2] * U_ax[2,m] * U_ay[4,m] + dNdx[2] * Ny[2] * U_ax[4,m] * U_ay[4,m]
 
             ε += ε_m
         end
 
-        ε += BBx*anx # eller BBy*ay, blir samma
+        ε += BBx*U_anx # eller BBy*U_ay, blir samma
         σ = D*ε
 
 

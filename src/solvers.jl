@@ -1,9 +1,8 @@
 ############################
 # Solves displacement mode #
 ############################
-
 function U_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_edof::Matrix{Int},
-                      D_mat::Matrix{Int},b::Vector,modeItr::Int)
+                      U_mp_tangent::Matrix,b::Vector,modeItr::Int)
 
     # Set up initial stuff
     full_solution = U_a_old[:,modeItr] # Reuse last loadstep's mode as initial guess
@@ -26,7 +25,8 @@ function U_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_e
         copy!(trial_solution,full_solution)
         trial_solution[free_dofs(U_bc)] += Δan[free_dofs(U_bc)]
 
-        g = calc_globres_U(trial_solution,U_a,U,D_mat,U_edof,b,free_dofs(U_bc))
+        g = calc_globres_U(trial_solution,U_a,U,U_edof,free_dofs(U_bc),
+                                          U_mp_tangent,b)
 
         maxofg = maximum(abs(g))
         println("Residual is now maxofg = $maxofg")
@@ -42,18 +42,26 @@ function U_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_e
             break
         else # do steps
 
-            # Step in x-dir
-            g_x = calc_globres_U(trial_solution,U_a,U,D_mat,U_edof,b,free_dofs(U_bc,1))
-            K_x = calc_globK_U(trial_solution,U_a,U,D_mat,U_edof,b,free_dofs(U_bc,1))
+            #################
+            # Step in x-dir #
+            #################
+            g_x = calc_globres_U(trial_solution,U_a,U,U_edof,free_dofs(U_bc,1),
+                                                U_mp_tangent,b)
+            K_x = calc_globK_U(trial_solution,U_a,U,U_edof,free_dofs(U_bc,1),
+                                                U_mp_tangent,b)
             ΔΔan = cholfact(Symmetric(K_x, :U))\g_x
             Δan[free_dofs(U_bc,1)] -= ΔΔan
 
             # Update trial solution? Yes, should help when solving for y-dir
             trial_solution[free_dofs(U_bc,1)] -= ΔΔan # or trial_solution[free_dofs(bc_U,1)] = full_solution[free_dofs(bc_U,1)] + Δan[free_dofs(bc_U,1)]
 
-            # Step in y-dir
-            g_y = calc_globres_U(trial_solution,U_a,U,D_mat,U_edof,b,free_dofs(U_bc,2))
-            K_y = calc_globK_U(trial_solution,U_a,U,D_mat,U_edof,b,free_dofs(U_bc,2))
+            #################
+            # Step in y-dir #
+            #################
+            g_y = calc_globres_U(trial_solution,U_a,U,U_edof,free_dofs(U_bc,2),
+                                                U_mp_tangent,b)
+            K_y = calc_globK_U(trial_solution,U_a,U,U_edof,free_dofs(U_bc,2),
+                                                U_mp_tangent,b)
             ΔΔan = cholfact(Symmetric(K_y, :U))\g_y
             Δan[free_dofs(U_bc,2)] -= ΔΔan
 
@@ -119,7 +127,9 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
             break
         else # do steps
 
-            # Step in x-dir
+            #################
+            # Step in x-dir #
+            #################
             g_x = calc_globres_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc,1),
                                                  D_a,D,D_edof,
                                                  U_mp_tangent,b)
@@ -132,7 +142,9 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
             # Update trial solution? Yes, should help when solving for y-dir
             trial_solution[free_dofs(U_bc,1)] -= ΔΔan # or trial_solution[free_dofs(bc_U,1)] = full_solution[free_dofs(bc_U,1)] + Δan[free_dofs(bc_U,1)]
 
-            # Step in y-dir
+            #################
+            # Step in y-dir #
+            #################
             g_y = calc_globres_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc,2),
                                                  D_a,D,D_edof,
                                                  U_mp_tangent,b)

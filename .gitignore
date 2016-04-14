@@ -1,3 +1,4 @@
 *.vts
 *.vtu
 *.pvd
+*.ipynb*
