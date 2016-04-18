@@ -1,3 +1,6 @@
+#########################
+# For pure displacement #
+#########################
 function vtkwriter(pvd,U_a,U,step)
 
     ###############
@@ -43,6 +46,9 @@ function vtkwriter(pvd,U_a,U,step)
 
 end
 
+###############################
+# For displacement and damage #
+###############################
 function vtkwriter(pvd,U_a,U,D_a,D,step)
 
     ###############
@@ -88,8 +94,8 @@ function vtkwriter(pvd,U_a,U,D_a,D,step)
     ##########
     D_nModes = size(D_a,2)
 
-    Dx_dof = 1:(U.components[1].mesh.nDofs)
-    Dy_dof = (U.components[1].mesh.nDofs+1):(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs)
+    Dx_dof = 1:(D.components[1].mesh.nDofs)
+    Dy_dof = (D.components[1].mesh.nDofs+1):(D.components[1].mesh.nDofs+D.components[2].mesh.nDofs)
 
     Dx = D_a[Dx_dof,:]
 

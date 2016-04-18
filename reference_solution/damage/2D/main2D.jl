@@ -15,8 +15,8 @@ function main()
     pvd = paraview_collection("./vtkfiles/vtkoutfile")
 
     # Problem parameters
-    xStart = 0.0; xEnd = 1.0; nElx = 1000
-    yStart = 0.0; yEnd = 1.0; nEly = 1000
+    xStart = 0.0; xEnd = 1.0; nElx = 10
+    yStart = 0.0; yEnd = 1.0; nEly = 10
     u_nNodeDofs = 2; d_nNodeDofs = 1
     u_mesh = create_mesh2D(xStart,xEnd,yStart,yEnd,nElx,nEly,u_nNodeDofs)
     d_mesh = create_mesh2D(xStart,xEnd,yStart,yEnd,nElx,nEly,d_nNodeDofs)

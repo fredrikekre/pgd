@@ -27,9 +27,16 @@ immutable DamageParams # Phase-field parameters
     rp::Float64
 end
 
+# function DamageParams()
+#     l = 0.005
+#     gc = 0.1/1000.0
+#     rp = 1000.0 # Not used
+#     return DamageParams(l,gc,rp)
+# end
+
 function DamageParams()
-    l = 0.005
-    gc = 0.1/1000.0
+    l = 0.5
+    gc = 0.01
     rp = 1000.0 # Not used
     return DamageParams(l,gc,rp)
 end
