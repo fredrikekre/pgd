@@ -6,4 +6,5 @@
 - [ ] Better plotting/visualization
 - [ ] Remove `x` from element functions (only needed for nonstructured grids)
 - [x] Fix PGD Ψ to save in gauss points
-- [ ] Calculate Ψ in displacement function instead (for FEM and PGD)
+- [ ] Calculate Ψ in displacement function instead (for FEM and ~~PGD~~ )
+- [ ] Pretty printing of status and residuals etc

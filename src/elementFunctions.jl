@@ -99,7 +99,7 @@ function U_intf{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,
         end
 
         ε += BBx*U_anx # eller BBy*U_ay, blir samma
-        σ = D*ε
+        σ = U_mp_tangent*ε
 
 
         dΩ = U.fev.detJdV[q_point]

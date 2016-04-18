@@ -38,7 +38,7 @@ function calc_globK_U{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,U_edof::Matr
         U_m = U_edof[:,i]
 
         U_intf_closure(U_an) = U_intf(U_an,U_a[U_m,:],U,
-                                           U_mp_tangent,b)
+                                        x,U_mp_tangent,b)
 
         kefunc = ForwardDiff.jacobian(U_intf_closure, cache=cache)
         Ke = kefunc(U_an[U_m])
