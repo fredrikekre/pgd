@@ -177,7 +177,6 @@ end
 ##############################################
 
 function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_edof::Matrix{Int},
-                       U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_edof::Matrix{Int},
                        D_mp::PhaseFieldDamage,Ψ::Vector{Vector{Float64}},modeItr::Int)
 
     # Set up initial stuff
@@ -202,7 +201,6 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
         trial_solution[free_dofs(D_bc)] += Δan[free_dofs(D_bc)]
 
         g = calc_globres_DU(trial_solution,D_a,D,D_edof,free_dofs(D_bc),
-                                           U_a,U,U_edof,
                                            D_mp,Ψ)
 
         maxofg = maximum(abs(g))
@@ -224,11 +222,9 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
             # Step in x-dir #
             #################
             g_x = calc_globres_DU(trial_solution,D_a,D,D_edof,free_dofs(D_bc,1),
-                                                 U_a,U,U_edof,
                                                  D_mp,Ψ)
 
             K_x = calc_globK_DU(trial_solution,D_a,D,D_edof,free_dofs(D_bc,1),
-                                                 U_a,U,U_edof,
                                                  D_mp,Ψ)
 
             ΔΔan = cholfact(Symmetric(K_x, :U))\g_x
@@ -241,10 +237,8 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
             # Step in y-dir #
             #################
             g_y = calc_globres_DU(trial_solution,D_a,D,D_edof,free_dofs(D_bc,2),
-                                                 U_a,U,U_edof,
                                                  D_mp,Ψ)
             K_y = calc_globK_DU(trial_solution,D_a,D,D_edof,free_dofs(D_bc,2),
-                                                 U_a,U,U_edof,
                                                  D_mp,Ψ)
 
             ΔΔan = cholfact(Symmetric(K_y, :U))\g_y

@@ -164,7 +164,6 @@ function main()
         for modeItr = 2:(D_n_modes + 1)
             # tic()
             newMode = DU_ModeSolver(D_a,D_a_old,D,D_bc,D_edof,
-                                    U_a,U_a_old,U,U_bc,U_edof,
                                     D_mp,Ψ,modeItr)
             D_a[:,modeItr] = newMode
             D.modes = modeItr

@@ -271,7 +271,6 @@ end
 #####################################################
 
 function DU_intf{T}(D_an::Vector{T},D_a::Matrix,D::PGDFunction,
-                                    U_a::Matrix,U::PGDFunction,
                                     x,D_mp::PhaseFieldDamage,Ψ::Vector{Float64})
 
     # Damage
@@ -279,10 +278,6 @@ function DU_intf{T}(D_an::Vector{T},D_a::Matrix,D::PGDFunction,
     D_any = D_an[3:4]
     D_ax = D_a[1:2,:]
     D_ay = D_a[3:4,:]
-
-    # Displacement
-    U_ax = U_a[1:4,:]
-    U_ay = U_a[5:8,:]
 
 
     buff_coll = get_buffer(DU_buff_colls, T)
@@ -320,31 +315,6 @@ function DU_intf{T}(D_an::Vector{T},D_a::Matrix,D::PGDFunction,
 
         dNdx = reinterpret(Float64,dNdx,(size(dNdx[1],1),length(dNdx)))
         dNdy = reinterpret(Float64,dNdy,(size(dNdy[1],1),length(dNdy)))
-
-        #####################################################
-        # Calculate free energy based on displacement field #
-        #####################################################
-        ε = buff_coll.ε
-        fill!(ε, 0.0)
-        ε_m = buff_coll.ε_m
-
-        for m = 1:nModes(U)
-            ε_m[1] = dNdx[1] * Ny[1] * U_ax[1,m] * U_ay[1,m] + dNdx[2] * Ny[1] * U_ax[3,m] * U_ay[1,m] +
-                     dNdx[1] * Ny[2] * U_ax[1,m] * U_ay[3,m] + dNdx[2] * Ny[2] * U_ax[3,m] * U_ay[3,m]
-
-            ε_m[2] = Nx[1] * dNdy[1] * U_ax[2,m] * U_ay[2,m] + Nx[1] * dNdy[2] * U_ax[2,m] * U_ay[4,m] +
-                     Nx[2] * dNdy[1] * U_ax[4,m] * U_ay[2,m] + Nx[2] * dNdy[2] * U_ax[4,m] * U_ay[4,m]
-
-            ε_m[3] = Nx[1] * dNdy[1] * U_ax[1,m] * U_ay[1,m] + Nx[1] * dNdy[2] * U_ax[1,m] * U_ay[3,m] +
-                     Nx[2] * dNdy[1] * U_ax[3,m] * U_ay[1,m] + Nx[2] * dNdy[2] * U_ax[3,m] * U_ay[3,m] +
-                     dNdx[1] * Ny[1] * U_ax[2,m] * U_ay[2,m] + dNdx[2] * Ny[1] * U_ax[4,m] * U_ay[2,m] +
-                     dNdx[1] * Ny[2] * U_ax[2,m] * U_ay[4,m] + dNdx[2] * Ny[2] * U_ax[4,m] * U_ay[4,m]
-
-            ε += ε_m
-        end
-        # Calculate free energy in this gauss point
-        Ψ_new = 0.0
-        Ψ[q_point] = max(Ψ[q_point], Ψ_new) # Take max
 
         ##########
         # Damage #
@@ -385,7 +355,6 @@ function DU_intf{T}(D_an::Vector{T},D_a::Matrix,D::PGDFunction,
 
 
         dΩ = D.fev.detJdV[q_point]
-        println(Ψ[q_point])
         gx = (NNx'[:] * (D_mp.gc / D_mp.l * d - 2 * (1-d) * Ψ[q_point]) + D_mp.gc * D_mp.l * BBx' * ∂d) * dΩ
         gy = (NNy'[:] * (D_mp.gc / D_mp.l * d - 2 * (1-d) * Ψ[q_point]) + D_mp.gc * D_mp.l * BBy' * ∂d) * dΩ
 
