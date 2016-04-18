@@ -93,6 +93,8 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
     full_solution = zeros(Float64,number_of_dofs(U_edof))
     trial_solution = zeros(Float64,number_of_dofs(U_edof))
 
+    Ψ = [zeros(Float64,length(JuAFEM.points(D.fev.quad_rule))) for i in 1:D.mesh.nEl] # Energies
+
     Δan_0 = 0.1*ones(Float64, number_of_dofs(U_edof)) # Initial guess
     Δan_0[fixed_dofs(U_bc)] = 0.0
     Δan_0[prescr_dofs(U_bc)] = 0.0
@@ -110,9 +112,9 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
         copy!(trial_solution,full_solution)
         trial_solution[free_dofs(U_bc)] += Δan[free_dofs(U_bc)]
 
-        g = calc_globres_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc),
-                                           D_a,D,D_edof,
-                                           U_mp_tangent,b)
+        g, Ψ = calc_globres_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc),
+                                              D_a,D,D_edof,
+                                              U_mp_tangent,b)
         maxofg = maximum(abs(g))
         # println("Residual is now maxofg = $maxofg")
         if maxofg < TOL # converged
@@ -130,9 +132,9 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
             #################
             # Step in x-dir #
             #################
-            g_x = calc_globres_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc,1),
-                                                 D_a,D,D_edof,
-                                                 U_mp_tangent,b)
+            g_x, _ = calc_globres_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc,1),
+                                                    D_a,D,D_edof,
+                                                    U_mp_tangent,b)
             K_x = calc_globK_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc,1),
                                                D_a,D,D_edof,
                                                U_mp_tangent,b)
@@ -145,9 +147,9 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
             #################
             # Step in y-dir #
             #################
-            g_y = calc_globres_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc,2),
-                                                 D_a,D,D_edof,
-                                                 U_mp_tangent,b)
+            g_y, _ = calc_globres_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc,2),
+                                                    D_a,D,D_edof,
+                                                    U_mp_tangent,b)
             K_y = calc_globK_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc,2),
                                                D_a,D,D_edof,
                                                U_mp_tangent,b)
@@ -166,7 +168,7 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
 
     full_solution[free_dofs(U_bc)] += Δan[free_dofs(U_bc)]
 
-    return full_solution
+    return full_solution, Ψ
 end
 
 
@@ -176,7 +178,7 @@ end
 
 function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_edof::Matrix{Int},
                        U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_edof::Matrix{Int},
-                       D_mp::PhaseFieldDamage,Ψ::Vector{Float64},modeItr::Int)
+                       D_mp::PhaseFieldDamage,Ψ::Vector{Vector{Float64}},modeItr::Int)
 
     # Set up initial stuff
     full_solution = D_a_old[:,modeItr] # Reuse last loadstep's mode as initial guess

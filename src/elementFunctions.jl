@@ -5,7 +5,7 @@ include("buffers.jl")
 ###############################
 
 function U_intf{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,
-                                   x,U_mp_tangent::Matrix,b::Vector=zeros(2))
+                                   x,U_mp_tangent::Matrix,b::Vector)
     # U_an is the unknowns
     # U_a are the already computed modes
     # 4 node quadrilateral element
@@ -121,7 +121,9 @@ end
 
 function UD_intf{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,
                                     D_a::Matrix,D::PGDFunction,
-                                    x,U_mp_tangent::Matrix,b::Vector=zeros(2))
+                                    x,U_mp_tangent::Matrix,b::Vector)
+
+    Ψe = zeros(4)
 
     # Displacement
     U_anx = U_an[1:4] # Not general
@@ -243,9 +245,24 @@ function UD_intf{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,
 
         g += [gx;
               gy] # Här får man typ assemblera då istället om man har en unstructured mesh
+
+        #############################
+        # Calculate the energy here #
+        #############################
+        if typeof(U_an[1]) == Float64 # Otherwise its GradientNumber...
+            σ = U_mp_tangent*ε # Withoug σ_degradation
+            ε_T_values = (ε[1], ε[3]/2, 0.0, ε[2], 0.0, 0.0)
+            ε = SymmetricTensor{2,3}(ε_T_values)
+            σ_T_values = (σ[1], σ[3], 0.0, σ[2], 0.0, 0.0)
+            σ = SymmetricTensor{2,3}(σ_T_values)
+            Ψ = 1/2 * σ ⊡ ε
+            Ψe[q_point] = Ψ
+        else
+            Ψe[q_point] = 0.0
+        end
     end
 
-    return g
+    return g, Ψe
 end
 
 
@@ -284,22 +301,22 @@ function DU_intf{T}(D_an::Vector{T},D_a::Matrix,D::PGDFunction,
     BBx = buff_coll.BBx  # B matrix for stiffness
     BBy = buff_coll.BBy
 
-    for (q_point, (ξ,w)) in enumerate(zip(U.fev.quad_rule.points,U.fev.quad_rule.weights))
+    for (q_point, (ξ,w)) in enumerate(zip(D.fev.quad_rule.points,D.fev.quad_rule.weights))
 
         ξ_x = Tensor{1,1}((ξ[1],))
         ξ_y = Tensor{1,1}((ξ[2],))
 
         # Update values
-        ex_x = [U.components[1].mesh.x[1] U.components[1].mesh.x[2]] # only for equidistant mesh
+        ex_x = [D.components[1].mesh.x[1] D.components[1].mesh.x[2]] # only for equidistant mesh
         ex_x = reinterpret(Vec{1,Float64},ex_x,(size(ex_x,2),))
-        ex_y = [U.components[2].mesh.x[1] U.components[2].mesh.x[2]]
+        ex_y = [D.components[2].mesh.x[1] D.components[2].mesh.x[2]]
         ex_y = reinterpret(Vec{1,Float64},ex_y,(size(ex_y,2),))
 
         dNdx = reinterpret(Vec{1,Float64},dNdx,(2,))
         dNdy = reinterpret(Vec{1,Float64},dNdy,(2,))
 
-        evaluate_at_gauss_point!(U.components[1].fev,ξ_x,ex_x,Nx,dNdx)
-        evaluate_at_gauss_point!(U.components[2].fev,ξ_y,ex_y,Ny,dNdy)
+        evaluate_at_gauss_point!(D.components[1].fev,ξ_x,ex_x,Nx,dNdx)
+        evaluate_at_gauss_point!(D.components[2].fev,ξ_y,ex_y,Ny,dNdy)
 
         dNdx = reinterpret(Float64,dNdx,(size(dNdx[1],1),length(dNdx)))
         dNdy = reinterpret(Float64,dNdy,(size(dNdy[1],1),length(dNdy)))
@@ -368,7 +385,7 @@ function DU_intf{T}(D_an::Vector{T},D_a::Matrix,D::PGDFunction,
 
 
         dΩ = D.fev.detJdV[q_point]
-
+        println(Ψ[q_point])
         gx = (NNx'[:] * (D_mp.gc / D_mp.l * d - 2 * (1-d) * Ψ[q_point]) + D_mp.gc * D_mp.l * BBx' * ∂d) * dΩ
         gy = (NNy'[:] * (D_mp.gc / D_mp.l * d - 2 * (1-d) * Ψ[q_point]) + D_mp.gc * D_mp.l * BBy' * ∂d) * dΩ
 

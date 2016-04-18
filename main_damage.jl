@@ -109,6 +109,10 @@ function main()
     l = 0.5
     D_mp = PhaseFieldDamage(gc,l)
 
+    # Set up vector to store elastic energy
+    Ψ = [zeros(Float64,length(JuAFEM.points(D.fev.quad_rule))) for i in 1:D.mesh.nEl]
+    Ψ_new = copy(Ψ)
+
 
     #######################
     # Boundary conditions #
@@ -142,19 +146,23 @@ function main()
         # Displacement as function of damage
         for modeItr = 2:(U_n_modes + 1)
             # tic()
-            newMode = UD_ModeSolver(U_a,U_a_old,U,U_bc,U_edof,
-                                    D_a,D_a_old,D,D_bc,D_edof,
-                                    U_mp_tangent,b,modeItr)
+            newMode, Ψ_new = UD_ModeSolver(U_a,U_a_old,U,U_bc,U_edof,
+                                       D_a,D_a_old,D,D_bc,D_edof,
+                                       U_mp_tangent,b,modeItr)
 
             U_a[:,modeItr] = newMode
             U.modes = modeItr
             # toc()
         end # of mode iterations
 
+        # Calculate max energy
+        for i in 1:length(Ψ)
+            Ψ[i] = max(Ψ[i],Ψ_new[i])
+        end
+
         # Damage as function of the displacement
         for modeItr = 2:(D_n_modes + 1)
             # tic()
-            Ψ = zeros(4)
             newMode = DU_ModeSolver(D_a,D_a_old,D,D_bc,D_edof,
                                     U_a,U_a_old,U,U_bc,U_edof,
                                     D_mp,Ψ,modeItr)
@@ -164,7 +172,7 @@ function main()
         end
 
         # Write to file
-        vtkwriter(pvd,U_a,U,D_a,D,loadstep)
+        vtkwriter(pvd,U_a,U,D_a,D,Ψ,loadstep)
         # vtkwriter(pvd,U_a,U,loadstep)
         copy!(U_a_old,U_a)
         copy!(D_a_old,D_a)
