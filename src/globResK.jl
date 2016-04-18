@@ -122,7 +122,7 @@ end
 # Residual
 function calc_globres_DU{T}(D_an::Vector{T},D_a::Matrix,D::PGDFunction,D_edof::Matrix{Int},D_free::Vector{Int},
                                             U_a::Matrix,U::PGDFunction,U_edof::Matrix{Int},
-                                            D_mp::PhaseFieldDamage,Ψ::Float64)
+                                            D_mp::PhaseFieldDamage,Ψ::Vector{Float64})
     # Calculate global residual, g_glob
     g_glob = zeros(T,number_of_dofs(D_edof))
 
@@ -148,7 +148,7 @@ end
 # Tangent
 function calc_globK_DU{T}(D_an::Vector{T},D_a::Matrix,D::PGDFunction,D_edof::Matrix{Int},D_free::Vector{Int},
                                           U_a::Matrix,U::PGDFunction,U_edof::Matrix{Int},
-                                          D_mp::PhaseFieldDamage,Ψ::Float64)
+                                          D_mp::PhaseFieldDamage,Ψ::Vector{Float64})
 
     # Calculate global tangent stiffness matrix, K
     _K = JuAFEM.start_assemble()

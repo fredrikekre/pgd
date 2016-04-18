@@ -176,7 +176,7 @@ end
 
 function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_edof::Matrix{Int},
                        U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_edof::Matrix{Int},
-                       D_mp::PhaseFieldDamage,Ψ::Float64,modeItr::Int)
+                       D_mp::PhaseFieldDamage,Ψ::Vector{Float64},modeItr::Int)
 
     # Set up initial stuff
     full_solution = D_a_old[:,modeItr] # Reuse last loadstep's mode as initial guess

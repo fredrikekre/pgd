@@ -255,7 +255,7 @@ end
 
 function DU_intf{T}(D_an::Vector{T},D_a::Matrix,D::PGDFunction,
                                     U_a::Matrix,U::PGDFunction,
-                                    x,D_mp::PhaseFieldDamage,Ψ::Float64=0.0)
+                                    x,D_mp::PhaseFieldDamage,Ψ::Vector{Float64})
 
     # Damage
     D_anx = D_an[1:2]
@@ -326,7 +326,8 @@ function DU_intf{T}(D_an::Vector{T},D_a::Matrix,D::PGDFunction,
             ε += ε_m
         end
         # Calculate free energy in this gauss point
-        Ψ = 0.0
+        Ψ_new = 0.0
+        Ψ[q_point] = max(Ψ[q_point], Ψ_new) # Take max
 
         ##########
         # Damage #
@@ -368,8 +369,8 @@ function DU_intf{T}(D_an::Vector{T},D_a::Matrix,D::PGDFunction,
 
         dΩ = D.fev.detJdV[q_point]
 
-        gx = (NNx'[:] * (D_mp.gc / D_mp.l * d - 2 * (1-d) * Ψ) + D_mp.gc * D_mp.l * BBx' * ∂d) * dΩ
-        gy = (NNy'[:] * (D_mp.gc / D_mp.l * d - 2 * (1-d) * Ψ) + D_mp.gc * D_mp.l * BBy' * ∂d) * dΩ
+        gx = (NNx'[:] * (D_mp.gc / D_mp.l * d - 2 * (1-d) * Ψ[q_point]) + D_mp.gc * D_mp.l * BBx' * ∂d) * dΩ
+        gy = (NNy'[:] * (D_mp.gc / D_mp.l * d - 2 * (1-d) * Ψ[q_point]) + D_mp.gc * D_mp.l * BBy' * ∂d) * dΩ
 
         g += [gx;
               gy]

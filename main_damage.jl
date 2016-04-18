@@ -92,8 +92,8 @@ function main()
     #########################
     # Simulation parameters #
     #########################
-    U_n_modes = 2
-    D_n_modes = 2
+    U_n_modes = 1
+    D_n_modes = 1
 
     n_loadsteps = 10
     max_displacement = 0.2
@@ -124,7 +124,7 @@ function main()
     D_a_old = copy(D_a)
 
     # Body force
-    b = [0.0, 0.0]
+    b = [0.0, -0.5]
 
     ################
     # Write output #
@@ -146,7 +146,7 @@ function main()
                                     D_a,D_a_old,D,D_bc,D_edof,
                                     U_mp_tangent,b,modeItr)
 
-            U_a[:,modeItr] = newMode # Maybe change this to U_a = [U_a newMode] instead for arbitrary number of modes
+            U_a[:,modeItr] = newMode
             U.modes = modeItr
             # toc()
         end # of mode iterations
@@ -154,11 +154,11 @@ function main()
         # Damage as function of the displacement
         for modeItr = 2:(D_n_modes + 1)
             # tic()
-            Ψ = 0.0
+            Ψ = zeros(4)
             newMode = DU_ModeSolver(D_a,D_a_old,D,D_bc,D_edof,
                                     U_a,U_a_old,U,U_bc,U_edof,
                                     D_mp,Ψ,modeItr)
-            D_a[:,modeItr] = newMode # Maybe change this to D_a = [D_a newMode] instead for arbitrary number of modes
+            D_a[:,modeItr] = newMode
             D.modes = modeItr
             # toc()
         end
@@ -173,7 +173,7 @@ function main()
 
     end # of loadstepping
     vtk_save(pvd)
-    return U_a, U
+    return U_a, U, D_a, D
 end
 
 tic()
