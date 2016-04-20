@@ -125,7 +125,7 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
             this_norms = norm_of_mode(U,trial_solution)
             ratios = (this_norms[1]/tot_norms[1], this_norms[2]/tot_norms[2])
 
-            println("Converged mode #$modeItr in $i iterations. Ratios = $(ratios)")
+            # println("Converged mode #$modeItr in $i iterations. Ratios = $(ratios)")
             break
         else # do steps
 
@@ -204,7 +204,7 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
                                            D_mp,Ψ)
 
         maxofg = maximum(abs(g))
-        println("Residual is now maxofg = $maxofg")
+        # println("Residual is now maxofg = $maxofg")
         if maxofg < TOL # converged
 
             # D_atemp = copy(D_a)
@@ -214,7 +214,7 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
             # ratios = (this_norms[1]/tot_norms[1], this_norms[2]/tot_norms[2])
 
             # println("Converged mode #$modeItr in $i iterations. Ratios = $(ratios)")
-            println("Converged mode #$modeItr in $i iterations.")
+            # println("Converged mode #$modeItr in $i iterations.")
             break
         else # do steps
 

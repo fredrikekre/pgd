@@ -15,20 +15,21 @@ include("src/visualize.jl")
 include("src/boundaryConditions.jl")
 include("src/solvers.jl")
 include("src/vtkwriter.jl")
+include("src/pretty_printing.jl")
 
 
 ############################################
 # Main file for PGD elasticity with damage #
 ############################################
 
-function main()
+function main_damage()
 
     ############
     # Geometry #
     ############
     xStart = 0; yStart = 0
     xEnd = 1; yEnd = 1
-    xnEl = 10; ynEl = 10
+    xnEl = 100; ynEl = 100
 
 
     ###################
@@ -92,21 +93,21 @@ function main()
     #########################
     # Simulation parameters #
     #########################
-    U_n_modes = 1
-    D_n_modes = 1
+    U_n_modes = 5
+    D_n_modes = 5
 
-    n_loadsteps = 10
-    max_displacement = 0.2
+    n_loadsteps = 100
+    max_displacement = 0.05/4
 
     #######################
     # Material parameters #
     #######################
-    E = 1.0; ν = 0.3
+    E = 1; ν = 0.3
     U_mp = LinearElastic(:E,E,:ν,ν)
     U_mp_tangent = TangentStiffness(U_mp)
 
-    gc = 0.01
-    l = 0.5
+    gc = 0.01/1000
+    l = 0.05
     D_mp = PhaseFieldDamage(gc,l)
 
     # Set up vector to store elastic energy
@@ -128,7 +129,7 @@ function main()
     D_a_old = copy(D_a)
 
     # Body force
-    b = [0.0, -0.5]
+    b = [0.0, 0.0]
 
     ################
     # Write output #
@@ -139,12 +140,13 @@ function main()
     # Start simulation #
     ####################
     for loadstep in 0:n_loadsteps
-        println("Loadstep #$loadstep of $(n_loadsteps)")
+        print_loadstep(loadstep,n_loadsteps)
         controlled_displacement = max_displacement*(loadstep/n_loadsteps)
         U_a[:,1] = sqrt(controlled_displacement) * U_dirichletmode # Since `dirichletmode` is squared
 
         # Displacement as function of damage
         for modeItr = 2:(U_n_modes + 1)
+            print_modeitr(modeItr-1,U_n_modes,"displacement")
             # tic()
             newMode, Ψ_new = UD_ModeSolver(U_a,U_a_old,U,U_bc,U_edof,
                                        D_a,D_a_old,D,D_bc,D_edof,
@@ -152,6 +154,7 @@ function main()
 
             U_a[:,modeItr] = newMode
             U.modes = modeItr
+            println("done!")
             # toc()
         end # of mode iterations
 
@@ -162,17 +165,18 @@ function main()
 
         # Damage as function of the displacement
         for modeItr = 2:(D_n_modes + 1)
+            print_modeitr(modeItr-1,D_n_modes,"damage")
             # tic()
             newMode = DU_ModeSolver(D_a,D_a_old,D,D_bc,D_edof,
                                     D_mp,Ψ,modeItr)
             D_a[:,modeItr] = newMode
             D.modes = modeItr
+            println("done!")
             # toc()
         end
 
         # Write to file
         vtkwriter(pvd,U_a,U,D_a,D,Ψ,loadstep)
-        # vtkwriter(pvd,U_a,U,loadstep)
         copy!(U_a_old,U_a)
         copy!(D_a_old,D_a)
         U.modes = 1
@@ -183,8 +187,6 @@ function main()
     return U_a, U, D_a, D
 end
 
-tic()
-o = main()
-toc()
+@time o = main_damage()
 
 visualize(o...)
