@@ -3,7 +3,7 @@ using ForwardDiff
 using WriteVTK
 # using CALFEM
 
-include("src/phasefield.jl")
+include("../../../src/material_params.jl")
 include("../../../src/meshgenerator.jl")
 include("src/solvers.jl")
 include("src/gandK.jl")
@@ -29,7 +29,9 @@ function main()
     d_fe_values = FEValues(Float64, quad_rule, function_space)
 
     # Material
-    u_mp = LEmtrl()
+    E = 1.0; ν = 0.3;
+    u_mp = LinearElastic(:E,E,:ν,ν)
+    return u_mp
     # u_mp = LEmtrl(1.0,0.3)
     Ψ = [zeros(length(JuAFEM.points(quad_rule))) for i in 1:u_mesh.nEl]
 
