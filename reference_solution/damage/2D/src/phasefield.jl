@@ -35,8 +35,8 @@ end
 # end
 
 function DamageParams()
-    l = 0.5
-    gc = 0.01
+    l = 0.05
+    gc = 0.01/1000
     rp = 1000.0 # Not used
     return DamageParams(l,gc,rp)
 end
