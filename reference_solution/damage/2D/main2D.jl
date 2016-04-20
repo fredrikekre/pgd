@@ -3,7 +3,7 @@ using ForwardDiff
 using WriteVTK
 # using CALFEM
 
-include("src/phasefield.jl")
+include("../../../src/material_params.jl")
 include("../../../src/meshgenerator.jl")
 include("src/solvers.jl")
 include("src/gandK.jl")
@@ -15,8 +15,8 @@ function main()
     pvd = paraview_collection("./vtkfiles/vtkoutfile")
 
     # Problem parameters
-    xStart = 0.0; xEnd = 1.0; nElx = 10
-    yStart = 0.0; yEnd = 1.0; nEly = 10
+    xStart = 0.0; xEnd = 1.0; nElx = 100
+    yStart = 0.0; yEnd = 1.0; nEly = 100
     u_nNodeDofs = 2; d_nNodeDofs = 1
     u_mesh = create_mesh2D(xStart,xEnd,yStart,yEnd,nElx,nEly,u_nNodeDofs)
     d_mesh = create_mesh2D(xStart,xEnd,yStart,yEnd,nElx,nEly,d_nNodeDofs)
@@ -29,7 +29,9 @@ function main()
     d_fe_values = FEValues(Float64, quad_rule, function_space)
 
     # Material
-    u_mp = LEmtrl()
+    E = 1.0; ν = 0.3;
+    u_mp = LinearElastic(:E,E,:ν,ν)
+    return u_mp
     # u_mp = LEmtrl(1.0,0.3)
     Ψ = [zeros(length(JuAFEM.points(quad_rule))) for i in 1:u_mesh.nEl]
 
@@ -38,7 +40,7 @@ function main()
 
     # Boundary conditions
     u_prescr = u_mesh.b3[2,:][:]
-    u_fixed = [u_mesh.b1[1,1]; u_mesh.b1[2,:][:]]
+    u_fixed = [u_mesh.b1[1,:][:]; u_mesh.b1[2,:][:]; u_mesh.b3[1,:][:]]
     u_free = setdiff(1:u_mesh.nDofs,[u_prescr; u_fixed])
 
     # d_prescr = [collect((101*49 + 1):(101*49 + 41));
@@ -51,7 +53,7 @@ function main()
     d_free = setdiff(1:d_mesh.nDofs,[d_prescr; d_fixed])
 
     nTimeSteps = 100
-    u_prescr_max = 0.1*0.5
+    u_prescr_max = 0.1*0.5/4
 
     u = zeros(u_mesh.nDofs)
     d = zeros(d_mesh.nDofs)
@@ -95,4 +97,4 @@ function main()
     return u, d, Ψ
 end
 
-o = main()
+@time o = main()
