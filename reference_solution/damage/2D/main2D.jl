@@ -29,14 +29,14 @@ function main()
     d_fe_values = FEValues(Float64, quad_rule, function_space)
 
     # Material
-    E = 1.0; ν = 0.3;
+    E = 1; ν = 0.3;
     u_mp = LinearElastic(:E,E,:ν,ν)
-    return u_mp
-    # u_mp = LEmtrl(1.0,0.3)
+
     Ψ = [zeros(length(JuAFEM.points(quad_rule))) for i in 1:u_mesh.nEl]
 
-
-    d_mp = DamageParams()
+    gc = 0.01/1000
+    l = 0.05
+    d_mp = PhaseFieldDamage(gc,l)
 
     # Boundary conditions
     u_prescr = u_mesh.b3[2,:][:]

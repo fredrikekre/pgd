@@ -34,12 +34,9 @@ function LinearElastic{T,Q}(p1::Symbol,v1::T,p2::Symbol,v2::Q)
     prom_par = promote(v1,v2)
     return LinearElastic(p1,prom_par[1],p2,prom_par[2])
 end
+LinearElastic(v1::Real,v2::Real) = LinearElastic(:E,v1,:ν,v2)
 
-# immutable TangentStiffness{T}
-#     E::Matrix{T}
-# end
-
-function TangentStiffness(mp::LinearElastic)
+function TangentStiffness(mp::LinearElastic) # Voigt tangentstiffness
     E = CALFEM.hooke(2,mp.E,mp.ν)
     return E[[1,2,4],[1,2,4]]
     # return TangentStiffness(E)
