@@ -121,7 +121,7 @@ end
 
 function UD_intf{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,
                                     D_a::Matrix,D::PGDFunction,
-                                    x,U_mp_tangent::Matrix,b::Vector)
+                                    x,U_mp::LinearElastic_withTangent,b::Vector)
 
     Ψe = zeros(4)
 
@@ -227,15 +227,12 @@ function UD_intf{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,
         for m = 1:nModes(D)
             d += dot(Nx,D_ax[:,m]) * dot(Ny,D_ay[:,m])
         end
-        if d > 0.00000000001
-            println("wtf dudddde")
-        end
 
         rf = 1e-6
         σ_degradation = (1.0-d)^2 + rf
 
         # Stress
-        σ = U_mp_tangent*ε * σ_degradation
+        σ = U_mp.tangent*ε * σ_degradation
 
 
         dΩ = U.fev.detJdV[q_point]
@@ -249,16 +246,11 @@ function UD_intf{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,
         #############################
         # Calculate the energy here #
         #############################
-        if typeof(U_an[1]) == Float64 # Otherwise its GradientNumber...
-            σ = U_mp_tangent*ε # Withoug σ_degradation
-            ε_T_values = (ε[1], ε[3]/2, 0.0, ε[2], 0.0, 0.0)
-            ε = SymmetricTensor{2,3}(ε_T_values)
-            σ_T_values = (σ[1], σ[3], 0.0, σ[2], 0.0, 0.0)
-            σ = SymmetricTensor{2,3}(σ_T_values)
+        if T == Float64 # Otherwise its GradientNumber...
+            ε = εv_to_εt(ε)
+            σ =  2 * U_mp.mp.G * dev(ε) + U_mp.mp.K * trace(ε)* one(ε)
             Ψ = 1/2 * σ ⊡ ε
             Ψe[q_point] = Ψ
-        else
-            Ψe[q_point] = 0.0
         end
     end
 

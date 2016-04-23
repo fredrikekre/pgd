@@ -29,7 +29,7 @@ function main_damage()
     ############
     xStart = 0; yStart = 0
     xEnd = 1; yEnd = 1
-    xnEl = 100; ynEl = 100
+    xnEl = 50; ynEl = 50
 
 
     ###################
@@ -97,7 +97,7 @@ function main_damage()
     D_n_modes = 5
 
     n_loadsteps = 100
-    max_displacement = 0.05/4
+    max_displacement = 0.05
 
     #######################
     # Material parameters #
@@ -105,6 +105,7 @@ function main_damage()
     E = 1; ν = 0.3
     U_mp = LinearElastic(:E,E,:ν,ν)
     U_mp_tangent = TangentStiffness(U_mp)
+    U_mp = LinearElastic_withTangent(U_mp,U_mp_tangent)
 
     gc = 0.01/1000
     l = 0.05
@@ -150,7 +151,7 @@ function main_damage()
             # tic()
             newMode, Ψ_new = UD_ModeSolver(U_a,U_a_old,U,U_bc,U_edof,
                                        D_a,D_a_old,D,D_bc,D_edof,
-                                       U_mp_tangent,b,modeItr)
+                                       U_mp,b,modeItr)
 
             U_a[:,modeItr] = newMode
             U.modes = modeItr
@@ -189,4 +190,4 @@ end
 
 @time o = main_damage()
 
-visualize(o...)
+# visualize(o...)

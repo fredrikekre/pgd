@@ -7,6 +7,7 @@ include("../../../src/material_params.jl")
 include("../../../src/meshgenerator.jl")
 include("src/solvers.jl")
 include("src/gandK.jl")
+include("src/element_functions.jl")
 include("src/vtkwriter.jl")
 
 function main()
@@ -59,7 +60,6 @@ function main()
     d = zeros(d_mesh.nDofs)
 
     for i in 1:nTimeSteps
-    # tic()
         println("Timestep $i of $nTimeSteps")
         u_prescribed_value = (i-1)*u_prescr_max/nTimeSteps
         d_prescribed_value = 1.0
@@ -73,25 +73,25 @@ function main()
         for j = 1:3 # Do some iterations
 
             # Solve for displacements
-            Δu = solveDisplacementField(u,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,u_mp,b)
+            Δu, Ψ_new = UD_solver(u,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,u_mp,b)
             u[u_free] += Δu
 
-            # Calculate free energy
-            Ψ, _, _ = calculateFreeEnergy(u,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,u_mp,Ψ)
+            # # Calculate free energy
+            for ele in 1:length(Ψ)
+                Ψ[ele] = max(Ψ[ele],Ψ_new[ele])
+            end
 
             # Solve for damage field
-            Δd = solveDamageField(d,d_mesh,d_free,d_fe_values,u,u_mesh,u_fe_values,d_mp,Ψ)
+            Δd = DU_solver(d,d_mesh,d_free,d_fe_values,u,u_mesh,u_fe_values,d_mp,Ψ)
             d[d_free] += Δd
 
         end
 
-        _, Ψ_plot, σe_plot = calculateFreeEnergy(u,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,u_mp,Ψ)
+        # _, Ψ_plot, σe_plot = calculateFreeEnergy(u,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,u_mp,Ψ)
 
         # Write to VTK
-        # toc()
-        # tic()
-        vtkwriter(pvd,i,u_mesh,u,d,Ψ_plot,σe_plot)
-        # toc()
+        # vtkwriter(pvd,i,u_mesh,u,d,Ψ_plot,σe_plot)
+        vtkwriter(pvd,i,u_mesh,u,d)
     end
     vtk_save(pvd)
     return u, d, Ψ

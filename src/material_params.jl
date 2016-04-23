@@ -42,6 +42,11 @@ function TangentStiffness(mp::LinearElastic) # Voigt tangentstiffness
     # return TangentStiffness(E)
 end
 
+immutable LinearElastic_withTangent{T}
+    mp::LinearElastic{T}
+    tangent::Matrix{T}
+end
+
 
 # Damage parameters
 immutable PhaseFieldDamage{T} <: MaterialParameters{T}

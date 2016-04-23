@@ -86,16 +86,17 @@ end
 #############################################
 function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_edof::Matrix{Int},
                        D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_edof::Matrix{Int},
-                       U_mp_tangent::Matrix,b::Vector,modeItr::Int)
+                       U_mp::LinearElastic_withTangent,b::Vector,modeItr::Int)
 
     # Set up initial stuff
     full_solution = U_a_old[:,modeItr] # Reuse last loadstep's mode as initial guess
-    full_solution = zeros(Float64,number_of_dofs(U_edof))
+    # full_solution = zeros(Float64,number_of_dofs(U_edof))
     trial_solution = zeros(Float64,number_of_dofs(U_edof))
 
     Ψ = [zeros(Float64,length(JuAFEM.points(D.fev.quad_rule))) for i in 1:D.mesh.nEl] # Energies
 
     Δan_0 = 0.1*ones(Float64, number_of_dofs(U_edof)) # Initial guess
+    # Δan_0 = U_a_old[:,modeItr]
     Δan_0[fixed_dofs(U_bc)] = 0.0
     Δan_0[prescr_dofs(U_bc)] = 0.0
 
@@ -114,7 +115,7 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
 
         g, Ψ = calc_globres_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc),
                                               D_a,D,D_edof,
-                                              U_mp_tangent,b)
+                                              U_mp,b)
         maxofg = maximum(abs(g))
         # println("Residual is now maxofg = $maxofg")
         if maxofg < TOL # converged
@@ -126,6 +127,7 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
             ratios = (this_norms[1]/tot_norms[1], this_norms[2]/tot_norms[2])
 
             # println("Converged mode #$modeItr in $i iterations. Ratios = $(ratios)")
+            print("$i iterations ... ")
             break
         else # do steps
 
@@ -134,10 +136,10 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
             #################
             g_x, _ = calc_globres_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc,1),
                                                     D_a,D,D_edof,
-                                                    U_mp_tangent,b)
+                                                    U_mp,b)
             K_x = calc_globK_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc,1),
                                                D_a,D,D_edof,
-                                               U_mp_tangent,b)
+                                               U_mp,b)
             ΔΔan = cholfact(Symmetric(K_x, :U))\g_x
             Δan[free_dofs(U_bc,1)] -= ΔΔan
 
@@ -149,10 +151,10 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
             #################
             g_y, _ = calc_globres_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc,2),
                                                     D_a,D,D_edof,
-                                                    U_mp_tangent,b)
+                                                    U_mp,b)
             K_y = calc_globK_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc,2),
                                                D_a,D,D_edof,
-                                               U_mp_tangent,b)
+                                               U_mp,b)
             ΔΔan = cholfact(Symmetric(K_y, :U))\g_y
             Δan[free_dofs(U_bc,2)] -= ΔΔan
 
@@ -181,9 +183,11 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
 
     # Set up initial stuff
     full_solution = D_a_old[:,modeItr] # Reuse last loadstep's mode as initial guess
-    trial_solution = zeros(number_of_dofs(D_edof))
+    # full_solution = zeros(Float64,number_of_dofs(D_edof))
+    trial_solution = zeros(Float64,number_of_dofs(D_edof))
 
     Δan_0 = 0.1*ones(Float64, number_of_dofs(D_edof)) # Initial guess
+    # Δan_0 = D_a_old[:,modeItr]
     Δan_0[fixed_dofs(D_bc)] = 0.0
     Δan_0[prescr_dofs(D_bc)] = 0.0
 
@@ -215,6 +219,7 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
 
             # println("Converged mode #$modeItr in $i iterations. Ratios = $(ratios)")
             # println("Converged mode #$modeItr in $i iterations.")
+            print("$i iterations ... ")
             break
         else # do steps
 
