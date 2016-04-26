@@ -6,7 +6,7 @@ immutable LinearElastic{T} <: MaterialParameters{T}
     ν::T # Poisson's ratio
     G::T # Shear modulus
     K::T # Bulk modulus
-    μ::T # Lame constants
+    μ::T # Lamé constants
     λ::T
 end
 
@@ -30,14 +30,21 @@ function LinearElastic{T}(p1::Symbol,v1::T,p2::Symbol,v2::T)
     end
 end
 
-# immutable TangentStiffness{T}
-#     E::Matrix{T}
-# end
+function LinearElastic{T,Q}(p1::Symbol,v1::T,p2::Symbol,v2::Q)
+    prom_par = promote(v1,v2)
+    return LinearElastic(p1,prom_par[1],p2,prom_par[2])
+end
+LinearElastic(v1::Real,v2::Real) = LinearElastic(:E,v1,:ν,v2)
 
-function TangentStiffness(mp::LinearElastic)
+function TangentStiffness(mp::LinearElastic) # Voigt tangentstiffness
     E = CALFEM.hooke(2,mp.E,mp.ν)
     return E[[1,2,4],[1,2,4]]
     # return TangentStiffness(E)
+end
+
+immutable LinearElastic_withTangent{T}
+    mp::LinearElastic{T}
+    tangent::Matrix{T}
 end
 
 
@@ -46,3 +53,5 @@ immutable PhaseFieldDamage{T} <: MaterialParameters{T}
     gc::T # Energy release rate
     l::T # Length scale
 end
+
+PhaseFieldDamage{T,Q}(gc::T,l::Q) = PhaseFieldDamage(promote(gc,l)...)

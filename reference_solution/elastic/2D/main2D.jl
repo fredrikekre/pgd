@@ -2,7 +2,7 @@ using JuAFEM
 using ForwardDiff
 using WriteVTK
 
-include("src/material_params.jl")
+include("../../../src/material_params.jl")
 include("../../../src/meshgenerator.jl")
 include("src/solvers.jl")
 include("src/gandK.jl")
@@ -26,7 +26,8 @@ function main()
     u_fe_values = FEValues(Float64, quad_rule, function_space)
 
     # Material
-    u_mp = LEmtrl()
+    E = 1; ν = 0.3
+    u_mp = LinearElastic(:E,E,:ν,ν)
 
     # Boundary conditions
     u_prescr = u_mesh.b3[2,:][:]

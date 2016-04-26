@@ -49,7 +49,7 @@ end
 ###############################
 # For displacement and damage #
 ###############################
-function vtkwriter(pvd,U_a,U,D_a,D,step)
+function vtkwriter(pvd,U_a,U,D_a,D,Ψ,step)
 
     ###############
     # Set up grid #
@@ -88,6 +88,17 @@ function vtkwriter(pvd,U_a,U,D_a,D,step)
     vtkdisp[1,:,:,1] = u
     vtkdisp[2,:,:,1] = v
     vtk_point_data(vtkfile, vtkdisp, "displacement")
+
+    # ##########
+    # # Energy #
+    # ##########
+    # Ψ_plot = zeros(length(Ψ))
+    # for i in 1:length(Ψ)
+    #     Ψ_plot[i] = mean(Ψ[i])
+    # end
+    # println(size(Ψ_plot))
+    # println(length(Ψ_plot))
+    # vtk_cell_data(vtkfile, Ψ_plot, "energy")
 
     ##########
     # Damage #

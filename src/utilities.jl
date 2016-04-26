@@ -103,3 +103,12 @@ function norm_of_mode(U::PGDFunction, a::Array)
 
     return normu, normv
 end
+
+# Convert Voigt strain to strain tensor
+function εv_to_εt{T}(ε::Vector{T})
+
+    εt_val = (ε[1], ε[3]/2, 0.0, ε[2], 0.0, 0.0)
+
+    return SymmetricTensor{2,3,T}(εt_val)
+
+end
