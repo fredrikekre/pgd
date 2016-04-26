@@ -3,12 +3,13 @@ using ForwardDiff
 using WriteVTK
 # using CALFEM
 
-include("../../../src/material_params.jl")
-include("../../../src/meshgenerator.jl")
+include("../../src/material_params.jl")
+include("../../src/meshgenerator.jl")
 include("src/solvers.jl")
 include("src/gandK.jl")
 include("src/element_functions.jl")
 include("src/vtkwriter.jl")
+include("../../src/pretty_printing.jl")
 
 function main_damage()
 
@@ -16,12 +17,12 @@ function main_damage()
     pvd = paraview_collection("./vtkfiles_damage/vtkoutfile")
 
     # Problem parameters
-    xStart = 0.0; xEnd = 1.0; nElx = 100
-    yStart = 0.0; yEnd = 1.0; nEly = 100
+    xStart = 0.0; xEnd = 1.0; nElx = 50
+    yStart = 0.0; yEnd = 1.0; nEly = 50
     u_nNodeDofs = 2; d_nNodeDofs = 1
     u_mesh = create_mesh2D(xStart,xEnd,yStart,yEnd,nElx,nEly,u_nNodeDofs)
     d_mesh = create_mesh2D(xStart,xEnd,yStart,yEnd,nElx,nEly,d_nNodeDofs)
-    b = zeros(2)
+    b = [0.0, 0.0]
 
     # Function spaces
     function_space = Lagrange{2, JuAFEM.RefCube, 1}()
@@ -53,25 +54,21 @@ function main_damage()
     d_fixed = []
     d_free = setdiff(1:d_mesh.nDofs,[d_prescr; d_fixed])
 
-    nTimeSteps = 100
+    n_loadsteps = 100
     u_prescr_max = 0.1*0.5/4
 
     u = zeros(u_mesh.nDofs)
     d = zeros(d_mesh.nDofs)
 
-    for i in 1:nTimeSteps
-        println("Timestep $i of $nTimeSteps")
-        u_prescribed_value = (i-1)*u_prescr_max/nTimeSteps
+    for loadstep in 0:n_loadsteps
+        print_loadstep(loadstep,n_loadsteps)
+        u_prescribed_value = u_prescr_max*(loadstep/n_loadsteps)
         d_prescribed_value = 1.0
 
         u[u_prescr] = u_prescribed_value
         d[d_prescr] = d_prescribed_value
 
-        # Solve for displacements
-        # Δu = solveDisplacementField(u,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,u_mp,b)
-        # u[u_free] += Δu
         for j = 1:3 # Do some iterations
-
             # Solve for displacements
             Δu, Ψ_new = UD_solver(u,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,u_mp,b)
             u[u_free] += Δu
@@ -87,11 +84,8 @@ function main_damage()
 
         end
 
-        # _, Ψ_plot, σe_plot = calculateFreeEnergy(u,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,u_mp,Ψ)
-
         # Write to VTK
-        # vtkwriter(pvd,i,u_mesh,u,d,Ψ_plot,σe_plot)
-        vtkwriter(pvd,i,u_mesh,u,d)
+        vtkwriter(pvd,loadstep,u_mesh,u,d)
     end
     vtk_save(pvd)
     return u, d, Ψ

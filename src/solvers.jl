@@ -2,7 +2,7 @@
 # Solves displacement mode #
 ############################
 function U_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_edof::Matrix{Int},
-                      U_mp_tangent::Matrix,b::Vector,modeItr::Int)
+                      U_mp::LinearElastic_withTangent,b::Vector,modeItr::Int)
 
     # Set up initial stuff
     full_solution = U_a_old[:,modeItr] # Reuse last loadstep's mode as initial guess
@@ -26,10 +26,10 @@ function U_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_e
         trial_solution[free_dofs(U_bc)] += Δan[free_dofs(U_bc)]
 
         g = calc_globres_U(trial_solution,U_a,U,U_edof,free_dofs(U_bc),
-                                          U_mp_tangent,b)
+                                          U_mp,b)
 
         maxofg = maximum(abs(g))
-        println("Residual is now maxofg = $maxofg")
+        # println("Residual is now maxofg = $maxofg")
         if maxofg < TOL # converged
 
             U_atemp = copy(U_a)
@@ -38,7 +38,8 @@ function U_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_e
             this_norms = norm_of_mode(U,trial_solution)
             ratios = (this_norms[1]/tot_norms[1], this_norms[2]/tot_norms[2])
 
-            println("Converged mode #$modeItr in $i iterations. Ratios = $(ratios)")
+            # println("Converged mode #$modeItr in $i iterations. Ratios = $(ratios)")
+            print("$i iterations ... ")
             break
         else # do steps
 
@@ -46,9 +47,9 @@ function U_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_e
             # Step in x-dir #
             #################
             g_x = calc_globres_U(trial_solution,U_a,U,U_edof,free_dofs(U_bc,1),
-                                                U_mp_tangent,b)
+                                                U_mp,b)
             K_x = calc_globK_U(trial_solution,U_a,U,U_edof,free_dofs(U_bc,1),
-                                                U_mp_tangent,b)
+                                                U_mp,b)
             ΔΔan = cholfact(Symmetric(K_x, :U))\g_x
             Δan[free_dofs(U_bc,1)] -= ΔΔan
 
@@ -59,9 +60,9 @@ function U_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_e
             # Step in y-dir #
             #################
             g_y = calc_globres_U(trial_solution,U_a,U,U_edof,free_dofs(U_bc,2),
-                                                U_mp_tangent,b)
+                                                U_mp,b)
             K_y = calc_globK_U(trial_solution,U_a,U,U_edof,free_dofs(U_bc,2),
-                                                U_mp_tangent,b)
+                                                U_mp,b)
             ΔΔan = cholfact(Symmetric(K_y, :U))\g_y
             Δan[free_dofs(U_bc,2)] -= ΔΔan
 

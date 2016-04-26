@@ -1,6 +1,7 @@
-#########################
-# For pure displacement #
-#########################
+####################
+# For displacement #
+####################
+
 function vtkwriter(pvd,U_a,U,step)
 
     ###############
@@ -15,7 +16,7 @@ function vtkwriter(pvd,U_a,U,step)
     Y[:,:,1] = y
 
     # Create file
-    vtkfile = vtk_grid("./resultfiles/step_$step",X,Y,Z,compress=false,append=false) # no compress and append due to Zlib problem
+    vtkfile = vtk_grid("./vtkfiles_elastic/step_$step",X,Y,Z,compress=false,append=false) # no compress and append due to Zlib problem
 
     #################
     # Displacements #
@@ -63,7 +64,7 @@ function vtkwriter(pvd,U_a,U,D_a,D,Ψ,step)
     Y[:,:,1] = y
 
     # Create file
-    vtkfile = vtk_grid("./resultfiles/step_$step",X,Y,Z,compress=false,append=false) # no compress and append due to Zlib problem
+    vtkfile = vtk_grid("./vtkfiles_damage/step_$step",X,Y,Z,compress=false,append=false) # no compress and append due to Zlib problem
 
     #################
     # Displacements #

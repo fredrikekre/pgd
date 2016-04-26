@@ -9,18 +9,19 @@ include("src/solvers.jl")
 include("src/gandK.jl")
 include("src/element_functions.jl")
 include("src/vtkwriter.jl")
+include("../../src/pretty_printing.jl")
 
-function main()
+function main_elastic()
 
     # Write output
     pvd = paraview_collection("./vtkfiles_elastic/vtkoutfile")
 
     # Problem parameters
-    xStart = 0.0; xEnd = 1.0; nElx = 100
-    yStart = 0.0; yEnd = 1.0; nEly = 100
+    xStart = 0.0; xEnd = 1.0; nElx = 50
+    yStart = 0.0; yEnd = 1.0; nEly = 50
     u_nNodeDofs = 2
     u_mesh = create_mesh2D(xStart,xEnd,yStart,yEnd,nElx,nEly,u_nNodeDofs)
-    b = zeros(2)
+    b = [0.0, 0.0]
 
     # Function spaces
     function_space = Lagrange{2, JuAFEM.RefCube, 1}()
@@ -36,15 +37,14 @@ function main()
     u_fixed = [u_mesh.b1[1,:][:]; u_mesh.b1[2,:][:]; u_mesh.b3[1,:][:]]
     u_free = setdiff(1:u_mesh.nDofs,[u_prescr; u_fixed])
 
-
-    nTimeSteps = 100
-    u_prescr_max = 0.1*0.5/4
+    n_loadsteps = 2
+    u_prescr_max = 0.1
 
     u = zeros(u_mesh.nDofs)
 
-    for i in 1:nTimeSteps
-        println("Timestep $i of $nTimeSteps")
-        u_prescribed_value = (i-1)*u_prescr_max/nTimeSteps
+    for loadstep in 0:n_loadsteps
+        print_loadstep(loadstep,n_loadsteps)
+        u_prescribed_value = u_prescr_max*(loadstep/n_loadsteps)
 
         u[u_prescr] = u_prescribed_value
 
@@ -53,10 +53,10 @@ function main()
         u[u_free] += Δu
 
         # Write to VTK
-        vtkwriter(pvd,i,u_mesh,u)
+        vtkwriter(pvd,loadstep,u_mesh,u)
     end
     vtk_save(pvd)
     return u
 end
 
-@time o = main()
+@time o = main_elastic()

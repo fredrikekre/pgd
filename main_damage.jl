@@ -93,11 +93,11 @@ function main_damage()
     #########################
     # Simulation parameters #
     #########################
-    U_n_modes = 5
-    D_n_modes = 5
+    U_n_modes = 10
+    D_n_modes = 10
 
     n_loadsteps = 100
-    max_displacement = 0.05
+    max_displacement = 0.1*0.5/4
 
     #######################
     # Material parameters #
@@ -135,7 +135,7 @@ function main_damage()
     ################
     # Write output #
     ################
-    pvd = paraview_collection("./resultfiles/result")
+    pvd = paraview_collection("./vtkfiles_damage/vtkoutfile")
 
     ####################
     # Start simulation #
@@ -148,7 +148,6 @@ function main_damage()
         # Displacement as function of damage
         for modeItr = 2:(U_n_modes + 1)
             print_modeitr(modeItr-1,U_n_modes,"displacement")
-            # tic()
             newMode, Ψ_new = UD_ModeSolver(U_a,U_a_old,U,U_bc,U_edof,
                                        D_a,D_a_old,D,D_bc,D_edof,
                                        U_mp,b,modeItr)
@@ -156,7 +155,6 @@ function main_damage()
             U_a[:,modeItr] = newMode
             U.modes = modeItr
             println("done!")
-            # toc()
         end # of mode iterations
 
         # Calculate max energy
@@ -167,13 +165,11 @@ function main_damage()
         # Damage as function of the displacement
         for modeItr = 2:(D_n_modes + 1)
             print_modeitr(modeItr-1,D_n_modes,"damage")
-            # tic()
             newMode = DU_ModeSolver(D_a,D_a_old,D,D_bc,D_edof,
                                     D_mp,Ψ,modeItr)
             D_a[:,modeItr] = newMode
             D.modes = modeItr
             println("done!")
-            # toc()
         end
 
         # Write to file
