@@ -64,9 +64,9 @@ function main_elastic()
     #########################
     # Simulation parameters #
     #########################
-    U_n_modes = 20
+    U_n_modes = 5
 
-    n_loadsteps = 2
+    n_loadsteps = 20
     max_displacement = 0.1
 
     #######################
@@ -83,7 +83,7 @@ function main_elastic()
     #######################
     U_bc, U_dirichletmode = U_BC(U)
     U.modes += 1 # Add the first mode as a dirichlet mode
-    U_a = [U_dirichletmode repmat(zeros(U_dirichletmode),1,U_n_modes)]
+    U_a = [U_dirichletmode 0.1*repmat(ones(U_dirichletmode),1,U_n_modes)]
     U_a_old = copy(U_a)
 
     # Body force
@@ -106,7 +106,7 @@ function main_elastic()
         for modeItr = 2:(U_n_modes + 1)
             print_modeitr(modeItr-1,U_n_modes,"displacement")
             newMode = U_ModeSolver(U_a,U_a_old,U,U_bc,U_edof,
-                                       U_mp,b,modeItr)
+                                       U_mp,b,modeItr,loadstep)
 
             U_a[:,modeItr] = newMode
             U.modes = modeItr
@@ -115,7 +115,9 @@ function main_elastic()
 
         # Write to file
         vtkwriter(pvd,U_a,U,loadstep)
-        copy!(U_a_old,U_a)
+        if loadstep > 0 # Since first loadstep is a 0-mode
+            copy!(U_a_old,U_a)
+        end
         U.modes = 1
 
     end # of loadstepping

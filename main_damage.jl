@@ -121,12 +121,12 @@ function main_damage()
     #######################
     U_bc, U_dirichletmode = U_BC(U)
     U.modes += 1 # Add the first mode as a dirichlet mode
-    U_a = [U_dirichletmode repmat(zeros(U_dirichletmode),1,U_n_modes)]
+    U_a = [U_dirichletmode 0.1*repmat(ones(U_dirichletmode),1,U_n_modes)]
     U_a_old = copy(U_a)
 
     D_bc, D_dirichletmode = D_BC(D)
     D.modes += 1 # Add the first mode as a dirichlet mode
-    D_a = [D_dirichletmode repmat(zeros(D_dirichletmode),1,D_n_modes)]
+    D_a = [D_dirichletmode 0.1*repmat(ones(D_dirichletmode),1,D_n_modes)]
     D_a_old = copy(D_a)
 
     # Body force
@@ -174,8 +174,10 @@ function main_damage()
 
         # Write to file
         vtkwriter(pvd,U_a,U,D_a,D,Ψ,loadstep)
-        copy!(U_a_old,U_a)
-        copy!(D_a_old,D_a)
+        if loadstep > 0 # Since first loadstep is a 0-mode
+            copy!(U_a_old,U_a)
+            copy!(D_a_old,D_a)
+        end
         U.modes = 1
         D.modes = 1
 

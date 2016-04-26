@@ -1,7 +1,6 @@
 using JuAFEM
 using ForwardDiff
 using WriteVTK
-# using CALFEM
 
 include("../../src/material_params.jl")
 include("../../src/meshgenerator.jl")

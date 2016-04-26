@@ -2,16 +2,15 @@
 # Solves displacement mode #
 ############################
 function U_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_edof::Matrix{Int},
-                      U_mp::LinearElastic_withTangent,b::Vector,modeItr::Int)
+                      U_mp::LinearElastic_withTangent,b::Vector,modeItr::Int,loadstep::Int)
 
     # Set up initial stuff
-    full_solution = U_a_old[:,modeItr] # Reuse last loadstep's mode as initial guess
+    full_solution = zeros(number_of_dofs(U_edof))
     trial_solution = zeros(number_of_dofs(U_edof))
 
-    Δan_0 = 0.1*ones(Float64, number_of_dofs(U_edof)) # Initial guess
+    Δan_0 = U_a_old[:,modeItr] # Initial guess
     Δan_0[fixed_dofs(U_bc)] = 0.0
     Δan_0[prescr_dofs(U_bc)] = 0.0
-
 
     # Total solution need to satisfy boundary conditions so we enforce that here
     full_solution[prescr_dofs(U_bc)] = 0.0
@@ -90,14 +89,12 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
                        U_mp::LinearElastic_withTangent,b::Vector,modeItr::Int)
 
     # Set up initial stuff
-    full_solution = U_a_old[:,modeItr] # Reuse last loadstep's mode as initial guess
-    # full_solution = zeros(Float64,number_of_dofs(U_edof))
-    trial_solution = zeros(Float64,number_of_dofs(U_edof))
+    full_solution = zeros(number_of_dofs(U_edof))
+    trial_solution = zeros(number_of_dofs(U_edof))
 
     Ψ = [zeros(Float64,length(JuAFEM.points(D.fev.quad_rule))) for i in 1:D.mesh.nEl] # Energies
 
-    Δan_0 = 0.1*ones(Float64, number_of_dofs(U_edof)) # Initial guess
-    # Δan_0 = U_a_old[:,modeItr]
+    Δan_0 = U_a_old[:,modeItr]
     Δan_0[fixed_dofs(U_bc)] = 0.0
     Δan_0[prescr_dofs(U_bc)] = 0.0
 
@@ -183,12 +180,10 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
                        D_mp::PhaseFieldDamage,Ψ::Vector{Vector{Float64}},modeItr::Int)
 
     # Set up initial stuff
-    full_solution = D_a_old[:,modeItr] # Reuse last loadstep's mode as initial guess
-    # full_solution = zeros(Float64,number_of_dofs(D_edof))
+    full_solution = zeros(number_of_dofs(D_edof))
     trial_solution = zeros(Float64,number_of_dofs(D_edof))
 
-    Δan_0 = 0.1*ones(Float64, number_of_dofs(D_edof)) # Initial guess
-    # Δan_0 = D_a_old[:,modeItr]
+    Δan_0 = D_a_old[:,modeItr]
     Δan_0[fixed_dofs(D_bc)] = 0.0
     Δan_0[prescr_dofs(D_bc)] = 0.0
 
