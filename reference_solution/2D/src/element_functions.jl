@@ -2,6 +2,32 @@
 # Displacement #
 ################
 
+function U_intf{T}(u::Vector{T},u_fe_values,mp,b::Vector)
+
+    n_basefuncs = n_basefunctions(get_functionspace(u_fe_values))
+    u_tensor = reinterpret(Vec{2,T},u,(4,))
+
+    g = [zero(Tensor{1, 2, T}) for i in 1:n_basefuncs]
+
+    for q_point in 1:length(u_fe_values.quad_rule.points)
+
+        ε = function_vector_symmetric_gradient(u_fe_values, q_point, u_tensor)
+
+        σ = 2 * mp.G * dev(ε) + mp.K * trace(ε)* one(ε)
+
+        for i = 1:n_basefuncs
+            g[i] += σ ⋅ shape_gradient(u_fe_values,q_point,i) *  detJdV(u_fe_values,q_point)
+        end
+    end
+
+    return reinterpret(T, g, (2 * n_basefuncs,))
+end
+
+
+############################
+# Displacement with damage #
+############################
+
 function UD_intf{T,Q}(u::Vector{T},d::Vector{Q},u_fe_values,d_fe_values,mp,b::Vector)
 
     n_basefuncs = n_basefunctions(get_functionspace(u_fe_values))

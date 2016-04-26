@@ -1,5 +1,5 @@
 # FE solver for displacement
-function U_solver(u,u_mesh,u_free,u_fe_values,u_mp,b::Vector=zeros(2))
+function U_solver(u,u_mesh,u_free,u_fe_values,u_mp,b::Vector)
     n_u_free_dofs = length(u_free)
     Δu = zeros(n_u_free_dofs)
     u_tri = zeros(u)
@@ -9,18 +9,18 @@ function U_solver(u,u_mesh,u_free,u_fe_values,u_mp,b::Vector=zeros(2))
         copy!(u_tri,u)
         u_tri[u_free] += Δu
 
-        g = u_residual(u_tri,u_mesh,u_free,u_fe_values,u_mp,b)
+        g = U_residual(u_tri,u_mesh,u_free,u_fe_values,u_mp,b)
         tol = 1e-7
         if maximum(abs(g)) < tol
             # println("Displacement field, u, converged in $i iterations, r = $(maximum(abs(g))).")
             break
         end
 
-        K = u_jacobian(u_tri,u_mesh,u_free,u_fe_values,u_mp,b)
+        K = U_jacobian(u_tri,u_mesh,u_free,u_fe_values,u_mp,b)
         ΔΔu = cholfact(Symmetric(K, :U))\g
         Δu -= ΔΔu
 
-        # return Δu # Since I know its linear
+        return Δu # Since I know its linear
     end
 
     return Δu

@@ -2,6 +2,57 @@
 # Displacement #
 ################
 
+function U_residual{T}(u::Vector{T},u_mesh,u_free,u_fe_values,mp,b::Vector=zeros(2))
+    # Calculate global residual, g
+    ndofs = maximum(u_mesh.edof)
+    g = zeros(ndofs)
+
+    for i = 1:u_mesh.nEl
+        x = [u_mesh.ex[:,i] u_mesh.ey[:,i]]'
+        x = reinterpret(Vec{2,T},x,(size(x,2),))
+        JuAFEM.reinit!(u_fe_values,x)
+        u_m = u_mesh.edof[:,i]
+
+        ge = U_intf(u[u_m],u_fe_values,mp,b)
+
+        g[u_m] += ge
+    end
+
+    return g[u_free]
+end
+
+function U_jacobian{T}(u::Vector{T},u_mesh,u_free,u_fe_values,mp,b::Vector=zeros(2))
+    # Calculate global tangent stiffness matrix, K
+
+    _K = JuAFEM.start_assemble()
+    cache = ForwardDiffCache()
+
+    for i = 1:u_mesh.nEl
+        x = [u_mesh.ex[:,i] u_mesh.ey[:,i]]'
+        x = reinterpret(Vec{2,T},x,(size(x,2),))
+        JuAFEM.reinit!(u_fe_values,x)
+
+        JuAFEM.reinit!(u_fe_values,x)
+        u_m = u_mesh.edof[:,i]
+
+        U_intf_closure(u) = U_intf(u,u_fe_values,mp,b)
+
+        kefunc = ForwardDiff.jacobian(U_intf_closure, cache=cache)
+        Ke = kefunc(u[u_m])
+
+        JuAFEM.assemble(u_m,_K,Ke)
+    end
+
+    K = JuAFEM.end_assemble(_K)
+
+    return K[u_free, u_free]
+end
+
+
+############################
+# Displacement with damage #
+############################
+
 function UD_residual{T}(u::Vector{T},u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,mp,b::Vector)
     # Calculate global residual, g
     ndofs = maximum(u_mesh.edof)

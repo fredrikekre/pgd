@@ -10,10 +10,10 @@ include("src/gandK.jl")
 include("src/element_functions.jl")
 include("src/vtkwriter.jl")
 
-function main()
+function main_damage()
 
     # Write output
-    pvd = paraview_collection("./vtkfiles/vtkoutfile")
+    pvd = paraview_collection("./vtkfiles_damage/vtkoutfile")
 
     # Problem parameters
     xStart = 0.0; xEnd = 1.0; nElx = 100
@@ -97,4 +97,4 @@ function main()
     return u, d, Ψ
 end
 
-@time o = main()
+@time o = main_damage()
