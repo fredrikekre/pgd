@@ -112,3 +112,11 @@ function εv_to_εt{T}(ε::Vector{T})
     return SymmetricTensor{2,3,T}(εt_val)
 
 end
+
+# Hadamard product
+function hadamard(x::Vector,y::Vector)
+    size(x) == size(y) || throw(ArgumentError("x and y need to have the same length."))
+    return x.*y
+end
+
+const ∘ = hadamard

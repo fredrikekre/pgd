@@ -30,7 +30,7 @@ function main_damage()
     d_fe_values = FEValues(Float64, quad_rule, function_space)
 
     # Material
-    E = 1; ν = 0.3;
+    E = 1; ν = 0.3
     u_mp = LinearElastic(:E,E,:ν,ν)
 
     Ψ = [zeros(length(JuAFEM.points(quad_rule))) for i in 1:u_mesh.nEl]
@@ -47,7 +47,7 @@ function main_damage()
     # d_prescr = [collect((101*49 + 1):(101*49 + 41));
     #             collect((101*50 + 1):(101*50 + 41));
     #             collect((101*51 + 1):(101*51 + 41))]
-    d_prescr = collect(((nElx+1)*div(nEly,2) + 1):((nElx+1)*div(nEly,2) + Int(round(nElx/2))))
+    d_prescr = collect(((nElx+1)*div(nEly,2) + 1):((nElx+1)*div(nEly,2) + Int(ceil(nElx/2))))
     # d_prescr = []
 
     d_fixed = []
@@ -67,21 +67,26 @@ function main_damage()
         u[u_prescr] = u_prescribed_value
         d[d_prescr] = d_prescribed_value
 
-        for j = 1:3 # Do some iterations
+        # for j in 1:3 # Do some iterations
             # Solve for displacements
             Δu, Ψ_new = UD_solver(u,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,u_mp,b)
             u[u_free] += Δu
 
-            # # Calculate free energy
+            # Calculate free energy
             for ele in 1:length(Ψ)
                 Ψ[ele] = max(Ψ[ele],Ψ_new[ele])
             end
 
-            # Solve for damage field
-            Δd = DU_solver(d,d_mesh,d_free,d_fe_values,u,u_mesh,u_fe_values,d_mp,Ψ)
-            d[d_free] += Δd
+            # # Solve for damage field
+            # Δd = DU_solver(d,d_mesh,d_free,d_fe_values,d_mp,Ψ)
+            # d[d_free] += Δd
 
-        end
+        # end
+
+        # if loadstep == 89
+        #     elem = 1
+        #     return Ψ[elem], d[d_mesh.edof[:,elem]]
+        # end
 
         # Write to VTK
         vtkwriter(pvd,loadstep,u_mesh,u,d)

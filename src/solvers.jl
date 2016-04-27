@@ -20,14 +20,13 @@ function U_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_e
     # Δan_y = copy(Δan_y_0)
     i = -1; TOL = 1e-6; maxofg = 1
     while true; i += 1
-        # tic()
         copy!(trial_solution,full_solution)
         trial_solution[free_dofs(U_bc)] += Δan[free_dofs(U_bc)]
 
         g = calc_globres_U(trial_solution,U_a,U,U_edof,free_dofs(U_bc),
                                           U_mp,b)
 
-        maxofg = maximum(abs(g))
+        maxofg = norm(g)
         # println("Residual is now maxofg = $maxofg")
         if maxofg < TOL # converged
 
@@ -72,7 +71,6 @@ function U_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_e
                 break
             end
         end
-        # toc()
     end
 
     full_solution[free_dofs(U_bc)] += Δan[free_dofs(U_bc)]
@@ -107,14 +105,13 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
     # Δan_y = copy(Δan_y_0)
     i = -1; TOL = 1e-6; maxofg = 1.0
     while true; i += 1
-        # tic()
         copy!(trial_solution,full_solution)
         trial_solution[free_dofs(U_bc)] += Δan[free_dofs(U_bc)]
 
         g, Ψ = calc_globres_UD(trial_solution,U_a,U,U_edof,free_dofs(U_bc),
                                               D_a,D,D_edof,
                                               U_mp,b)
-        maxofg = maximum(abs(g))
+        maxofg = norm(g)
         # println("Residual is now maxofg = $maxofg")
         if maxofg < TOL # converged
 
@@ -163,7 +160,6 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
                 break
             end
         end
-        # toc()
     end
 
     full_solution[free_dofs(U_bc)] += Δan[free_dofs(U_bc)]
@@ -181,9 +177,10 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
 
     # Set up initial stuff
     full_solution = zeros(number_of_dofs(D_edof))
-    trial_solution = zeros(Float64,number_of_dofs(D_edof))
+    trial_solution = zeros(number_of_dofs(D_edof))
 
-    Δan_0 = D_a_old[:,modeItr]
+    # Δan_0 = D_a_old[:,modeItr]
+    Δan_0 = 0.01*ones(number_of_dofs(D_edof))
     Δan_0[fixed_dofs(D_bc)] = 0.0
     Δan_0[prescr_dofs(D_bc)] = 0.0
 
@@ -194,17 +191,16 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
 
     Δan = copy(Δan_0)
     # Δan_y = copy(Δan_y_0)
-    i = -1; TOL = 1e-6; maxofg = 1.0
+    i = -1; TOL = 1e-3; maxofg = 1.0
     while true; i += 1
-        # tic()
         copy!(trial_solution,full_solution)
         trial_solution[free_dofs(D_bc)] += Δan[free_dofs(D_bc)]
 
         g = calc_globres_DU(trial_solution,D_a,D,D_edof,free_dofs(D_bc),
                                            D_mp,Ψ)
 
-        maxofg = maximum(abs(g))
-        # println("Residual is now maxofg = $maxofg")
+        maxofg = norm(g)
+        print("norm(g_d) = $maxofg ...")
         if maxofg < TOL # converged
 
             # D_atemp = copy(D_a)
@@ -252,7 +248,6 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
                 break
             end
         end
-        # toc()
     end
 
     full_solution[free_dofs(D_bc)] += Δan[free_dofs(D_bc)]

@@ -129,7 +129,7 @@ end
 #     return ke
 # end
 
-function DU_intf_min_egen{T}(d::Vector{T},d_old,ue::Vector,d_fe_values,u_fe_values,mp,Ψe)
+function DU_intf_min_egen{T}(d::Vector{T},d_fe_values,d_mp,Ψe)
 
     n_basefuncs = n_basefunctions(get_functionspace(d_fe_values))
 
@@ -148,7 +148,7 @@ function DU_intf_min_egen{T}(d::Vector{T},d_old,ue::Vector,d_fe_values,u_fe_valu
             N = shape_value(d_fe_values,q_point,i)
             B = shape_gradient(d_fe_values,q_point,i)
             
-            ge = N * (mp.gc / mp.l * d_value -2*(1-d_value)*Ψe[q_point]) + mp.gc*mp.l * (B ⋅ ∂d)
+            ge = N * (d_mp.gc / d_mp.l * d_value -2*(1-d_value)*Ψe[q_point]) + d_mp.gc*d_mp.l * (B ⋅ ∂d)
             g[i] += ge * detJdV(d_fe_values,q_point)
         end
     end

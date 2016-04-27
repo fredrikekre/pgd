@@ -93,8 +93,8 @@ function main_damage()
     #########################
     # Simulation parameters #
     #########################
-    U_n_modes = 10
-    D_n_modes = 10
+    U_n_modes = 5
+    D_n_modes = 5
 
     n_loadsteps = 100
     max_displacement = 0.1*0.5/4
@@ -107,7 +107,7 @@ function main_damage()
     U_mp_tangent = TangentStiffness(U_mp)
     U_mp = LinearElastic_withTangent(U_mp,U_mp_tangent)
 
-    gc = 0.01/1000
+    gc = 0.01/100 # 0.01/1000
     l = 0.05
     D_mp = PhaseFieldDamage(gc,l)
 
@@ -126,7 +126,7 @@ function main_damage()
 
     D_bc, D_dirichletmode = D_BC(D)
     D.modes += 1 # Add the first mode as a dirichlet mode
-    D_a = [D_dirichletmode 0.1*repmat(ones(D_dirichletmode),1,D_n_modes)]
+    D_a = [D_dirichletmode 0.0*repmat(ones(D_dirichletmode),1,D_n_modes)]
     D_a_old = copy(D_a)
 
     # Body force
@@ -145,41 +145,52 @@ function main_damage()
         controlled_displacement = max_displacement*(loadstep/n_loadsteps)
         U_a[:,1] = sqrt(controlled_displacement) * U_dirichletmode # Since `dirichletmode` is squared
 
-        # Displacement as function of damage
-        for modeItr = 2:(U_n_modes + 1)
-            print_modeitr(modeItr-1,U_n_modes,"displacement")
-            newMode, Ψ_new = UD_ModeSolver(U_a,U_a_old,U,U_bc,U_edof,
-                                       D_a,D_a_old,D,D_bc,D_edof,
-                                       U_mp,b,modeItr)
+        for j in 1:3 # Do some iterations
 
-            U_a[:,modeItr] = newMode
-            U.modes = modeItr
-            println("done!")
-        end # of mode iterations
+            # Displacement as function of damage
+            for modeItr = 2:(U_n_modes + 1)
+                print_modeitr(modeItr-1,U_n_modes,"displacement")
+                newMode, Ψ_new = UD_ModeSolver(U_a,U_a_old,U,U_bc,U_edof,
+                                               D_a,D_a_old,D,D_bc,D_edof,
+                                                   U_mp,b,modeItr)
 
-        # Calculate max energy
-        for i in 1:length(Ψ)
-            Ψ[i] = max(Ψ[i],Ψ_new[i])
-        end
+                U_a[:,modeItr] = newMode
+                U.modes = modeItr
+                println("done!")
+            end
 
-        # Damage as function of the displacement
-        for modeItr = 2:(D_n_modes + 1)
-            print_modeitr(modeItr-1,D_n_modes,"damage")
-            newMode = DU_ModeSolver(D_a,D_a_old,D,D_bc,D_edof,
-                                    D_mp,Ψ,modeItr)
-            D_a[:,modeItr] = newMode
-            D.modes = modeItr
-            println("done!")
+            # Calculate max energy
+            for i in 1:length(Ψ)
+                Ψ[i] = max(Ψ[i],Ψ_new[i])
+            end
+
+            # Damage as function of the displacement
+            for modeItr = 2:(D_n_modes + 1)
+                print_modeitr(modeItr-1,D_n_modes,"damage")
+                newMode = DU_ModeSolver(D_a,D_a_old,D,D_bc,D_edof,
+                                            D_mp,Ψ,modeItr)
+                D_a[:,modeItr] = newMode
+                D.modes = modeItr
+                println("done!")
+            end
+
+            if loadstep > 0 # Since first loadstep is a 0-mode
+                copy!(U_a_old,U_a)
+                # copy!(D_a_old,D_a)
+            end
+            U.modes = 1
+            D.modes = 1
+
         end
 
         # Write to file
         vtkwriter(pvd,U_a,U,D_a,D,Ψ,loadstep)
-        if loadstep > 0 # Since first loadstep is a 0-mode
-            copy!(U_a_old,U_a)
-            copy!(D_a_old,D_a)
-        end
-        U.modes = 1
-        D.modes = 1
+        # if loadstep > 0 # Since first loadstep is a 0-mode
+        #     copy!(U_a_old,U_a)
+        #     # copy!(D_a_old,D_a)
+        # end
+        # U.modes = 1
+        # D.modes = 1
 
     end # of loadstepping
     vtk_save(pvd)

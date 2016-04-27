@@ -219,47 +219,7 @@ end
 # Damage BC #
 #############
 
-function D_BC(D::PGDFunction) # No damage from start
-
-    x_mode_dofs = collect(1:D.components[1].mesh.nDofs)
-    y_mode_dofs = collect((D.components[1].mesh.nDofs+1):(D.components[1].mesh.nDofs+D.components[2].mesh.nDofs))
-
-    # bc_Dx: Lock y_mode_dofs
-    fixed_Dx = Int[x_mode_dofs[[]];
-                   y_mode_dofs]
-    prescr_Dx = Int[]
-    free_Dx = setdiff(x_mode_dofs,[fixed_Dx; prescr_Dx])
-
-    # bc_Dy: Lock x_mode_dofs
-    fixed_Dy = Int[x_mode_dofs;
-                   y_mode_dofs[[]]]
-    prescr_Dy = Int[]
-    free_Dy = setdiff(y_mode_dofs,[fixed_Dy; prescr_Dy])
-
-    # bc_D: Total bc's
-    fixed_D = Int[x_mode_dofs[[]];
-                  y_mode_dofs[[]]]
-    prescr_D = Int[]
-    free_D = setdiff([x_mode_dofs; y_mode_dofs], [fixed_D; prescr_D])
-
-    # Combine and return
-    fixed = Vector{Int}[fixed_Dx,fixed_Dy,fixed_D]
-    prescr = Vector{Int}[prescr_Dx,prescr_Dy,prescr_D]
-    free = Vector{Int}[free_Dx,free_Dy,free_D]
-
-    # Create a dirichletmode which fulfills the non-homogeneous Dirichlet bc's
-    Dx_dof = 1:(D.components[1].mesh.nDofs)
-    Dy_dof = (D.components[1].mesh.nDofs+1):(D.components[1].mesh.nDofs+D.components[1].mesh.nDofs)
-
-    Dx_dirichlet = float(zeros(Dx_dof))
-    Dy_dirichlet = float(zeros(Dy_dof))
-
-    dirichletmode = [Dx_dirichlet; Dy_dirichlet]
-
-    return PGDBC(fixed,prescr,free), dirichletmode
-end
-
-# function D_BC(D::PGDFunction) # Initial crack
+# function D_BC(D::PGDFunction) # No damage from start
 
 #     x_mode_dofs = collect(1:D.components[1].mesh.nDofs)
 #     y_mode_dofs = collect((D.components[1].mesh.nDofs+1):(D.components[1].mesh.nDofs+D.components[2].mesh.nDofs))
@@ -294,10 +254,57 @@ end
 #     Dx_dirichlet = float(zeros(Dx_dof))
 #     Dy_dirichlet = float(zeros(Dy_dof))
 
-#     Dx_dirichlet[1:ceil(Int,length(x_mode_dofs)/2)] = 0.5
-#     Dy_dirichlet[ceil(Int,length(y_mode_dofs)/2)] = 1.0
-
 #     dirichletmode = [Dx_dirichlet; Dy_dirichlet]
 
 #     return PGDBC(fixed,prescr,free), dirichletmode
 # end
+
+function D_BC(D::PGDFunction) # Initial crack
+
+    x_mode_dofs = collect(1:D.components[1].mesh.nDofs)
+    y_mode_dofs = collect((D.components[1].mesh.nDofs+1):(D.components[1].mesh.nDofs+D.components[2].mesh.nDofs))
+
+    # Dirichlet dofs
+    dirichlet_x_dofs = 1:ceil(Int,length(x_mode_dofs)/2)
+    dirichlet_y_dofs = ceil(Int,length(y_mode_dofs)/2)
+    dirichlet_y_dofs = [dirichlet_y_dofs-1, dirichlet_y_dofs, dirichlet_y_dofs+1]
+
+    # bc_Dx: Lock y_mode_dofs
+    fixed_Dx = Int[x_mode_dofs[[]];
+                   y_mode_dofs]
+    prescr_Dx = Int[dirichlet_x_dofs;]
+    free_Dx = setdiff(x_mode_dofs,[fixed_Dx; prescr_Dx])
+
+    # bc_Dy: Lock x_mode_dofs
+    fixed_Dy = Int[x_mode_dofs;
+                   y_mode_dofs[[]]]
+    prescr_Dy = Int[dirichlet_y_dofs;]
+    free_Dy = setdiff(y_mode_dofs,[fixed_Dy; prescr_Dy])
+
+    # bc_D: Total bc's
+    fixed_D = Int[x_mode_dofs[[]];
+                  y_mode_dofs[[]]]
+    prescr_D = Int[dirichlet_y_dofs;
+                   dirichlet_y_dofs;]
+    free_D = setdiff([x_mode_dofs; y_mode_dofs], [fixed_D; prescr_D])
+
+    # Combine and return
+    fixed = Vector{Int}[fixed_Dx,fixed_Dy,fixed_D]
+    prescr = Vector{Int}[prescr_Dx,prescr_Dy,prescr_D]
+    free = Vector{Int}[free_Dx,free_Dy,free_D]
+
+    # Create a dirichletmode which fulfills the non-homogeneous Dirichlet bc's
+    Dx_dof = 1:(D.components[1].mesh.nDofs)
+    Dy_dof = (D.components[1].mesh.nDofs+1):(D.components[1].mesh.nDofs+D.components[1].mesh.nDofs)
+
+    Dx_dirichlet = float(zeros(Dx_dof))
+    Dy_dirichlet = float(zeros(Dy_dof))
+
+    Dx_dirichlet[dirichlet_x_dofs] = 1.0
+    # Dy_dirichlet[dirichlet_y_dofs] = 1.0
+    Dy_dirichlet[dirichlet_y_dofs] = [0.5,1.0,0.5]
+
+    dirichletmode = [Dx_dirichlet; Dy_dirichlet]
+
+    return PGDBC(fixed,prescr,free), dirichletmode
+end
