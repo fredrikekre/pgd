@@ -97,7 +97,7 @@ function main_damage()
     D_n_modes = 5
 
     n_loadsteps = 100
-    max_displacement = 0.1*0.5/4
+    max_displacement = 0.1*0.5
 
     #######################
     # Material parameters #
@@ -107,7 +107,7 @@ function main_damage()
     U_mp_tangent = TangentStiffness(U_mp)
     U_mp = LinearElastic_withTangent(U_mp,U_mp_tangent)
 
-    gc = 0.01/100 # 0.01/1000
+    gc = 0.01/1000 # 0.01/1000
     l = 0.05
     D_mp = PhaseFieldDamage(gc,l)
 
@@ -199,4 +199,4 @@ end
 
 @time o = main_damage()
 
-# visualize(o...)
+visualize(o...)

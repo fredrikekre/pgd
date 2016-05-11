@@ -267,25 +267,28 @@ function D_BC(D::PGDFunction) # Initial crack
     # Dirichlet dofs
     dirichlet_x_dofs = 1:ceil(Int,length(x_mode_dofs)/2)
     dirichlet_y_dofs = ceil(Int,length(y_mode_dofs)/2)
-    dirichlet_y_dofs = [dirichlet_y_dofs-1, dirichlet_y_dofs, dirichlet_y_dofs+1]
+    # dirichlet_y_dofs = [dirichlet_y_dofs-1, dirichlet_y_dofs, dirichlet_y_dofs+1]
 
     # bc_Dx: Lock y_mode_dofs
     fixed_Dx = Int[x_mode_dofs[[]];
                    y_mode_dofs]
-    prescr_Dx = Int[dirichlet_x_dofs;]
+    # prescr_Dx = Int[dirichlet_x_dofs;]
+    prescr_Dx = Int[]
     free_Dx = setdiff(x_mode_dofs,[fixed_Dx; prescr_Dx])
 
     # bc_Dy: Lock x_mode_dofs
     fixed_Dy = Int[x_mode_dofs;
                    y_mode_dofs[[]]]
-    prescr_Dy = Int[dirichlet_y_dofs;]
+    # prescr_Dy = Int[dirichlet_y_dofs;]
+    prescr_Dy = Int[]
     free_Dy = setdiff(y_mode_dofs,[fixed_Dy; prescr_Dy])
 
     # bc_D: Total bc's
     fixed_D = Int[x_mode_dofs[[]];
                   y_mode_dofs[[]]]
-    prescr_D = Int[dirichlet_y_dofs;
-                   dirichlet_y_dofs;]
+    # prescr_D = Int[dirichlet_y_dofs;
+    #                dirichlet_y_dofs;]
+    prescr_D = Int[]
     free_D = setdiff([x_mode_dofs; y_mode_dofs], [fixed_D; prescr_D])
 
     # Combine and return
@@ -301,8 +304,8 @@ function D_BC(D::PGDFunction) # Initial crack
     Dy_dirichlet = float(zeros(Dy_dof))
 
     Dx_dirichlet[dirichlet_x_dofs] = 1.0
-    # Dy_dirichlet[dirichlet_y_dofs] = 1.0
-    Dy_dirichlet[dirichlet_y_dofs] = [0.5,1.0,0.5]
+    Dy_dirichlet[dirichlet_y_dofs] = 1.0
+    # Dy_dirichlet[dirichlet_y_dofs] = [0.5,1.0,0.5]
 
     dirichletmode = [Dx_dirichlet; Dy_dirichlet]
 

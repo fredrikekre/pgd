@@ -67,7 +67,7 @@ function main_damage()
         u[u_prescr] = u_prescribed_value
         d[d_prescr] = d_prescribed_value
 
-        # for j in 1:3 # Do some iterations
+        for j in 1:3 # Do some iterations
             # Solve for displacements
             Δu, Ψ_new = UD_solver(u,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,u_mp,b)
             u[u_free] += Δu
@@ -77,11 +77,11 @@ function main_damage()
                 Ψ[ele] = max(Ψ[ele],Ψ_new[ele])
             end
 
-            # # Solve for damage field
-            # Δd = DU_solver(d,d_mesh,d_free,d_fe_values,d_mp,Ψ)
-            # d[d_free] += Δd
+            # Solve for damage field
+            Δd = DU_solver(d,d_mesh,d_free,d_fe_values,d_mp,Ψ)
+            d[d_free] += Δd
 
-        # end
+        end
 
         # if loadstep == 89
         #     elem = 1

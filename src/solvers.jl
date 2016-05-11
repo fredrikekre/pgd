@@ -191,7 +191,7 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
 
     Δan = copy(Δan_0)
     # Δan_y = copy(Δan_y_0)
-    i = -1; TOL = 1e-3; maxofg = 1.0
+    i = -1; TOL = 1e-12; maxofg = 1.0
     while true; i += 1
         copy!(trial_solution,full_solution)
         trial_solution[free_dofs(D_bc)] += Δan[free_dofs(D_bc)]
@@ -243,7 +243,7 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
 
             # trial_solution[free_dofs(bc_U,2)] -= ΔΔan # or trial_solution[free_dofs(bc_U,2)] = full_solution[free_dofs(bc_U,2)] + Δan[free_dofs(bc_U,2)]
 
-            if i > 149
+            if i > 20
                 warn("Exited loop after $i iterations with residual $maxofg")
                 break
             end
