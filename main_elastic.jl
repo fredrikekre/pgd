@@ -66,8 +66,8 @@ function main_elastic()
     #########################
     U_n_modes = 5
 
-    n_loadsteps = 100
-    max_displacement = 0.1*0.5/4
+    n_loadsteps = 1
+    max_displacement = 0.1
 
     #######################
     # Material parameters #
