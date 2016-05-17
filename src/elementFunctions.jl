@@ -5,7 +5,7 @@ include("buffers.jl")
 ###############################
 
 function U_intf{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,
-                                   x,U_mp_tangent::Matrix,b::Vector)
+                                   x,U_mp::LinearElastic_withTangent,b::Vector)
     # U_an is the unknowns
     # U_a are the already computed modes
     # 4 node quadrilateral element
@@ -99,7 +99,7 @@ function U_intf{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,
         end
 
         ε += BBx*U_anx # eller BBy*U_ay, blir samma
-        σ = U_mp_tangent*ε
+        σ = U_mp.tangent*ε
 
 
         dΩ = U.fev.detJdV[q_point]

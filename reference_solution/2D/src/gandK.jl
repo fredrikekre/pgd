@@ -112,7 +112,7 @@ end
 # Damage #
 ##########
 
-function DU_residual(d,d_old,d_mesh,d_free,d_fe_values,u,u_mesh,u_fe_values,mp,Ψ)
+function DU_residual(d,d_mesh,d_free,d_fe_values,d_mp,Ψ)
     # Calculate global residual, g
     ndofs = maximum(d_mesh.edof)
     g = zeros(ndofs)
@@ -121,13 +121,9 @@ function DU_residual(d,d_old,d_mesh,d_free,d_fe_values,u,u_mesh,u_fe_values,mp,�
         x = [d_mesh.ex[:,i] d_mesh.ey[:,i]]'
         x = reinterpret(Vec{2,Float64},x,(size(x,2),))
         JuAFEM.reinit!(d_fe_values,x)
-        JuAFEM.reinit!(u_fe_values,x)
         d_m = d_mesh.edof[:,i]
-        u_m = u_mesh.edof[:,i]
 
-        Δt = 0.015
-        # ge = d_intf(d[d_m],d_old[d_m],u[u_m],d_fe_values,u_fe_values,mp,Ψ[i],Δt)
-        ge = DU_intf_min_egen(d[d_m],d_old[d_m],u[u_m],d_fe_values,u_fe_values,mp,Ψ[i])
+        ge = DU_intf_min_egen(d[d_m],d_fe_values,d_mp,Ψ[i])
 
         g[d_m] += ge
     end
@@ -135,19 +131,17 @@ function DU_residual(d,d_old,d_mesh,d_free,d_fe_values,u,u_mesh,u_fe_values,mp,�
     return g[d_free]
 end
 
-function DU_jacobian(d,d_old,d_mesh,d_free,d_fe_values,u,u_mesh,u_fe_values,mp,Ψ)
+function DU_jacobian(d,d_mesh,d_free,d_fe_values,d_mp,Ψ)
     # Calculate global tangent stiffness matrix, K
 
     _K = JuAFEM.start_assemble()
     cache = ForwardDiffCache()
 
-    for i = 1:u_mesh.nEl
+    for i = 1:d_mesh.nEl
         x = [d_mesh.ex[:,i] d_mesh.ey[:,i]]'
         x = reinterpret(Vec{2,Float64},x,(size(x,2),))
         JuAFEM.reinit!(d_fe_values,x)
-        JuAFEM.reinit!(u_fe_values,x)
         d_m = d_mesh.edof[:,i]
-        u_m = u_mesh.edof[:,i]
 
         # # AD 1
         # d_intf_closure(d) = d_intf(d,d_old[d_m],u[u_m],d_fe_values,u_fe_values,mp,Ψ[i],Δt)
@@ -156,7 +150,7 @@ function DU_jacobian(d,d_old,d_mesh,d_free,d_fe_values,u,u_mesh,u_fe_values,mp,�
         # Ke = kefunc(d[d_m])
 
         # AD 2
-        DU_intf_min_egen_closure(d) = DU_intf_min_egen(d,d_old[d_m],u[u_m],d_fe_values,u_fe_values,mp,Ψ[i])
+        DU_intf_min_egen_closure(d) = DU_intf_min_egen(d,d_fe_values,d_mp,Ψ[i])
 
         kefunc = ForwardDiff.jacobian(DU_intf_min_egen_closure, cache=cache)
         Ke = kefunc(d[d_m])

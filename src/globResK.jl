@@ -4,7 +4,7 @@
 
 # Residual
 function calc_globres_U{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,U_edof::Matrix{Int},U_free::Vector{Int},
-                                           U_mp_tangent::Matrix,b::Vector)
+                                           U_mp::LinearElastic_withTangent,b::Vector)
     # Calculate global residual, g_glob
     g_glob = zeros(T,number_of_dofs(U_edof))
 
@@ -15,7 +15,7 @@ function calc_globres_U{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,U_edof::Ma
         JuAFEM.reinit!(U.fev,x)
         U_m = U_edof[:,i]
         ge = U_intf(U_an[U_m],U_a[U_m,:],U,
-                              x,U_mp_tangent,b)
+                              x,U_mp,b)
 
         g_glob[U_m] += ge
     end
@@ -25,7 +25,7 @@ end
 
 # Tangent
 function calc_globK_U{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,U_edof::Matrix{Int},U_free::Vector{Int},
-                                         U_mp_tangent::Matrix,b::Vector)
+                                         U_mp::LinearElastic_withTangent,b::Vector)
     # Calculate global tangent stiffness matrix, K
     _K = JuAFEM.start_assemble()
     cache = ForwardDiffCache()
@@ -38,7 +38,7 @@ function calc_globK_U{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,U_edof::Matr
         U_m = U_edof[:,i]
 
         U_intf_closure(U_an) = U_intf(U_an,U_a[U_m,:],U,
-                                        x,U_mp_tangent,b)
+                                        x,U_mp,b)
 
         kefunc = ForwardDiff.jacobian(U_intf_closure, cache=cache)
         Ke = kefunc(U_an[U_m])
