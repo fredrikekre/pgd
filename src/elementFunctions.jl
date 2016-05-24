@@ -347,8 +347,8 @@ function DU_intf{T}(D_an::Vector{T},D_a::Matrix,D::PGDFunction,
 
 
         dΩ = D.fev.detJdV[q_point]
-        gx = (NNx'[:] * (D_mp.gc / D_mp.l * d - 2 * (1-d) * Ψ[q_point]) + D_mp.gc * D_mp.l * BBx' * ∂d) * dΩ
-        gy = (NNy'[:] * (D_mp.gc / D_mp.l * d - 2 * (1-d) * Ψ[q_point]) + D_mp.gc * D_mp.l * BBy' * ∂d) * dΩ
+        gx = (NNx'[:] * (d - 2 * D_mp.l / D_mp.gc * (1-d) * Ψ[q_point]) + D_mp.l^2 * BBx' * ∂d) * dΩ
+        gy = (NNy'[:] * (d - 2 * D_mp.l / D_mp.gc * (1-d) * Ψ[q_point]) + D_mp.l^2 * BBy' * ∂d) * dΩ
 
         g += [gx;
               gy]

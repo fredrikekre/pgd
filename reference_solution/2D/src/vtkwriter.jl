@@ -57,4 +57,25 @@ function vtkwriter(pvd,i,u_mesh,u)
     vtk_point_data(vtkfile,displacement,"displacement")
     collection_add_timestep(pvd,vtkfile,float(i))
 
+
+
+end
+
+function save_pgd_format(u)
+    # Save to compare with PGD
+    nnodes = div(length(u),2)
+
+    nxnodes = Int(nnodes^(1/2))
+    nynodes = Int(nnodes^(1/2))
+
+    uu = u[1:2:end-1]
+    uu = reshape(uu,(nxnodes,nynodes))
+
+    vv = u[2:2:end]
+    vv = reshape(vv,(nxnodes,nynodes))
+
+    meshsize = (nxnodes-1, nynodes-1)
+
+    writedlm("../../../../FinalReport/DataPlots/raw_data/elasticshearinclusion/u_FEM_$(meshsize[1])_$(meshsize[2]).txt", uu)
+    writedlm("../../../../FinalReport/DataPlots/raw_data/elasticshearinclusion/v_FEM_$(meshsize[1])_$(meshsize[2]).txt", vv)
 end

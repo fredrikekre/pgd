@@ -8,6 +8,15 @@ function calc_globres_U{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,U_edof::Ma
     # Calculate global residual, g_glob
     g_glob = zeros(T,number_of_dofs(U_edof))
 
+    section = collect(31:70) + 30*100
+    incl_ele = Int[]
+    for i in 1:length(section)
+        append!(incl_ele,section + 100*(i-1))
+    end
+
+    hardmat = ones(U.mesh.nEl)
+    hardmat[incl_ele] = 10.0
+
     for i = 1:U.mesh.nEl
         # println("Residual element #$i")
         x = [U.mesh.ex[:,i] U.mesh.ey[:,i]]'
@@ -15,7 +24,7 @@ function calc_globres_U{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,U_edof::Ma
         JuAFEM.reinit!(U.fev,x)
         U_m = U_edof[:,i]
         ge = U_intf(U_an[U_m],U_a[U_m,:],U,
-                              x,U_mp,b)
+                              x,U_mp*hardmat[i],b)
 
         g_glob[U_m] += ge
     end
@@ -30,6 +39,15 @@ function calc_globK_U{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,U_edof::Matr
     _K = JuAFEM.start_assemble()
     cache = ForwardDiffCache()
 
+    section = collect(31:70) + 30*100
+    incl_ele = Int[]
+    for i in 1:length(section)
+        append!(incl_ele,section + 100*(i-1))
+    end
+
+    hardmat = ones(U.mesh.nEl)
+    hardmat[incl_ele] = 10.0
+
     for i = 1:U.mesh.nEl
         # println("Stiffness element #$i")
         x = [U.mesh.ex[:,i] U.mesh.ey[:,i]]'
@@ -38,7 +56,7 @@ function calc_globK_U{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,U_edof::Matr
         U_m = U_edof[:,i]
 
         U_intf_closure(U_an) = U_intf(U_an,U_a[U_m,:],U,
-                                        x,U_mp,b)
+                                        x,U_mp*hardmat[i],b)
 
         kefunc = ForwardDiff.jacobian(U_intf_closure, cache=cache)
         Ke = kefunc(U_an[U_m])

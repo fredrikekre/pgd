@@ -19,14 +19,14 @@ include("src/postprocesser.jl")
 ################################
 
 function main_elastic_3D_1D_integration()
-    const to = TimerOutput()
+    # const to = TimerOutput()
 
     ############
     # Geometry #
     ############
     xStart = 0; yStart = 0; zStart = 0
     xEnd = 1.0; yEnd = 1.0; zEnd = 1.0
-    xnEl = 100; ynEl = 100; znEl = 10
+    xnEl = 10; ynEl = 10; znEl = 10
 
 
     ###################
@@ -70,7 +70,7 @@ function main_elastic_3D_1D_integration()
     #########################
     # Simulation parameters #
     #########################
-    n_modes = 10
+    n_modes = 2
     n_loadsteps = 1
     TOL = 1e-7
     # max_displacement = 0.1*0.5/4
@@ -82,9 +82,9 @@ function main_elastic_3D_1D_integration()
     xbc = [1:3;(nxdofs-2):nxdofs]
     ybc = [1:3;(nydofs-2):nydofs]
     zbc = [1:3;(nzdofs-2):nzdofs]
-    xbc = [1:3;]; xbc = Int[1, 2, 3, nxdofs-2, nxdofs-1, nxdofs]
-    ybc = [1:3;]; ybc = Int[1, 2, 3, nydofs-2, nydofs-1, nydofs]
-    zbc = [1:3;]; zbc = Int[]
+    xbc = [1:3;]; #xbc = Int[1, 2, 3, nxdofs-2, nxdofs-1, nxdofs]
+    ybc = [1:3;]; #ybc = Int[1, 2, 3, nydofs-2, nydofs-1, nydofs]
+    zbc = [1:3;]; #zbc = Int[]
 
     # aXd = ones(nxdofs); aXd[xbc] = 0.0
     # aYd = ones(nydofs); aYd[ybc] = 0.0
@@ -171,7 +171,7 @@ function main_elastic_3D_1D_integration()
         # U.modes = 1
 
     end # of loadstepping
-    print(to)
+
     vtk_save(pvd)
     return aX, aY, aZ, Ux, Uy, Uz
 end

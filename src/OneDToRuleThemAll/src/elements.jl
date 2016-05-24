@@ -1,7 +1,6 @@
-###################
-# Shape functions #
-###################
-
+##########################
+# Shape functions for 3D #
+##########################
 function getN{dimcomp,T,functionspace}(U::PGDComponent{dimcomp,T,functionspace},::Val{3})
 
     ex = U.mesh.ex[1]
@@ -44,16 +43,59 @@ function getN{dimcomp,T,functionspace}(U::PGDComponent{dimcomp,T,functionspace},
     return N, dN
 end
 
+##########################
+# Shape functions for 2D #
+##########################
+function getN{dimcomp,T,functionspace}(U::PGDComponent{dimcomp,T,functionspace},::Val{2})
 
-###################
-# Pre integration #
-###################
+    ex = U.mesh.ex[1]
+    reinit!(U.fev,ex)
 
+    nqp = length(points(U.fev.quad_rule))
+
+    N = Vector{Vec{U.totaldim,T}}[]
+    dN = Vector{Tensor{2,U.totaldim,T}}[]
+
+    for qp in 1:nqp
+        Nqp = Vec{U.totaldim,T}[]
+        dNqp = Tensor{2,U.totaldim,T}[]
+        for dof in 1:U.mesh.nElDofs
+            counterN = ceil(Int,dof/U.totaldim)
+            counterDim = mod(dof,U.totaldim); if counterDim == 0; counterDim = U.totaldim; end
+
+            # Shape functions
+            thisN = zeros(T,U.totaldim)
+            thisN[counterDim] = U.fev.N[qp][counterN]
+            N_ = Vec{U.totaldim,T}((thisN...))
+            push!(Nqp, N_)
+
+            # Derivatives
+            thisdN = zeros(T,U.totaldim)
+            thisdN[counterDim] = U.fev.dNdx[qp][counterN][1]
+            if U.compdim == 1
+                thisdNt = [thisdN; thisN]
+            elseif U.compdim == 2
+                thisdNt = [thisN; thisdN]
+            end
+            dN_ = Tensor{2,U.totaldim}((thisdNt...))
+            push!(dNqp,dN_)
+        end
+        push!(N,Nqp)
+        push!(dN,dNqp)
+    end
+    return N, dN
+end
+
+
+####################################
+# Pre integration for global level #
+####################################
 function integrate_one_dimension{T,dimcomp,functionspace}(a::Vector{Vector{T}},
                                  U::PGDComponent{dimcomp,T,functionspace},
                                  E,
                                  f)
-    N, dN = getN(U, Val{3}())
+
+    N, dN = getN(U, Val{U.totaldim}())
 
     Ex = [zero(E[i]) for i in 1:length(E)]
     fx = zero(f)
@@ -91,12 +133,16 @@ function integrate_one_dimension{T,dimcomp,functionspace}(a::Vector{Vector{T}},
     return Ex, fx
 end
 
-#####################
-# Element functions #
-#####################
+########################################
+# Element functions for 1D integration #
+########################################
+ele_2D_1D{T}(fe::Vector{T},Ke::Matrix{T},m::Vector{Int},
+             U1::PGDComponent,a1::Vector{Vector{T}},N,dN,
+             E,f) = ele_3D_1D(fe,Ke,m,U1,a1,N,dN,E,f)
+
 function ele_3D_1D{T}(fe::Vector{T},Ke::Matrix{T},m::Vector{Int},
-                                  U1::PGDComponent,a1::Vector{Vector{T}},N,dN,
-                                  E,f)
+                                    U1::PGDComponent,a1::Vector{Vector{T}},N,dN,
+                                    E,f)
 
 
     nElDofs = U1.mesh.nElDofs
@@ -137,6 +183,9 @@ function ele_3D_1D{T}(fe::Vector{T},Ke::Matrix{T},m::Vector{Int},
     return fe, Ke
 end
 
+#####################################
+# Pre integration for element level #
+#####################################
 function integrate_one_dimension_element_level{T,dimcomp,functionspace}(
                        a::Vector{Vector{T}},U::PGDComponent{dimcomp,T,functionspace},
                        N,dN,
@@ -163,7 +212,7 @@ function integrate_one_dimension_element_level{T,dimcomp,functionspace}(
         number_modes = length(a)-1
         for mode in 1:number_modes
             dUhmode = zero(Tensor{2,U.totaldim})
-            for dof in 1:length(a)
+            for dof in 1:length(a[mode])
                 dUhmode += dN[qp][dof] * a[mode][dof]
             end
             Ex[mode] += hadamard(dUh,E[mode],dUhmode) * dV
@@ -174,6 +223,9 @@ function integrate_one_dimension_element_level{T,dimcomp,functionspace}(
     return Ex, fx
 end
 
+###############################################
+# Element function for 3D with 3D integration #
+###############################################
 function ele_3D_3D{T}(fe::Vector{T},Ke::Matrix{T},
                       U1::PGDComponent,a1::Vector{Vector{T}},N1,dN1,
                       U2::PGDComponent,a2::Vector{Vector{T}},N2,dN2,
@@ -217,6 +269,58 @@ function ele_3D_3D{T}(fe::Vector{T},Ke::Matrix{T},
             # Stiffness matrix
             for dof2 in 1:nElDofs
                 Ke[dof1,dof2] += (dcontract(dN1[qp][dof1], dcontract(E32[end], dN1[qp][dof2]))) * dV
+            end
+
+        end
+    end
+
+    return fe, Ke
+end
+
+###############################################
+# Element function for 2D with 2D integration #
+###############################################
+function ele_2D_2D{T}(fe::Vector{T},Ke::Matrix{T},
+                      U1::PGDComponent,a1::Vector{Vector{T}},N1,dN1,
+                      U2::PGDComponent,a2::Vector{Vector{T}},N2,dN2,
+                      E,f)
+
+
+    nElDofs = U1.mesh.nElDofs
+    fill!(fe,zero(T))
+    fill!(Ke,zero(T))
+
+    # Pre integrate on element level
+    Evec = typeof(E)[E for i in 1:length(a1)]
+    E2, f2 = integrate_one_dimension_element_level(a2,U2,N2,dN2,Evec,f)
+
+    # Integrate this element
+    nqp = length(points(U1.fev.quad_rule))
+
+    number_of_modes = length(a1)-1
+
+    for qp in 1:nqp
+        dV = detJdV(U1.fev,qp)
+
+        for dof1 in 1:nElDofs
+
+            # Body force
+            fe[dof1] += (N1[qp][dof1] ⋅ f2) * dV
+
+            # Previous modes
+            for mode in 1:number_of_modes
+                Un = zero(Tensor{1,U1.totaldim})
+                dUn = zero(Tensor{2,U1.totaldim})
+                for dof3 in 1:nElDofs
+                    dUn += dN1[qp][dof3] * a1[mode][dof3]
+                    Un += N1[qp][dof3] * a1[mode][dof3]
+                end
+                fe[dof1] -= (dcontract(dN1[qp][dof1], dcontract(E2[mode], dUn))) * dV
+            end
+
+            # Stiffness matrix
+            for dof2 in 1:nElDofs
+                Ke[dof1,dof2] += (dcontract(dN1[qp][dof1], dcontract(E2[end], dN1[qp][dof2]))) * dV
             end
 
         end

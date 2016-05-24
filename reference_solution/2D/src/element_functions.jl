@@ -16,7 +16,7 @@ function U_intf{T}(u::Vector{T},u_fe_values,mp,b::Vector)
         σ = 2 * mp.G * dev(ε) + mp.K * trace(ε)* one(ε)
 
         for i = 1:n_basefuncs
-            g[i] += σ ⋅ shape_gradient(u_fe_values,q_point,i) *  detJdV(u_fe_values,q_point)
+            g[i] += (σ ⋅ shape_gradient(u_fe_values,q_point,i)- shape_value(u_fe_values,q_point,i) * convert(Tensor{1,2},b) ) *  detJdV(u_fe_values,q_point)
         end
     end
 
@@ -42,13 +42,13 @@ function UD_intf{T,Q}(u::Vector{T},d::Vector{Q},u_fe_values,d_fe_values,mp,b::Ve
         ε = function_vector_symmetric_gradient(u_fe_values, q_point, u_tensor)
 
         d_value = function_scalar_value(d_fe_values,q_point,d)
-        rf = 1e-6
+        rf = 1e-6*1000
         σ_dev_degradation = (1.0-d_value)^2 + rf
 
         σ = σ_dev_degradation * (2 * mp.G * dev(ε) + mp.K * trace(ε)* one(ε))
 
         for i = 1:n_basefuncs
-            g[i] += σ ⋅ shape_gradient(u_fe_values,q_point,i) *  detJdV(u_fe_values,q_point)
+            g[i] += (σ ⋅ shape_gradient(u_fe_values,q_point,i) - shape_value(u_fe_values,q_point,i) * convert(Tensor{1,2},b) ) *  detJdV(u_fe_values,q_point)
         end
 
         #############################
@@ -134,7 +134,7 @@ function DU_intf_min_egen{T}(d::Vector{T},d_fe_values,d_mp,Ψe)
     n_basefuncs = n_basefunctions(get_functionspace(d_fe_values))
 
     g = zeros(T,n_basefuncs)
-    
+
     for q_point in 1:length(d_fe_values.quad_rule.points)
 
         d_value = function_scalar_value(d_fe_values,q_point,d)
@@ -147,8 +147,9 @@ function DU_intf_min_egen{T}(d::Vector{T},d_fe_values,d_mp,Ψe)
         for i in 1:n_basefuncs
             N = shape_value(d_fe_values,q_point,i)
             B = shape_gradient(d_fe_values,q_point,i)
-            
-            ge = N * (d_mp.gc / d_mp.l * d_value -2*(1-d_value)*Ψe[q_point]) + d_mp.gc*d_mp.l * (B ⋅ ∂d)
+
+            ge = N * (d_value - 2 * d_mp.l / d_mp.gc * (1-d_value) * Ψe[q_point]) + d_mp.l^2 * (B ⋅ ∂d)
+
             g[i] += ge * detJdV(d_fe_values,q_point)
         end
     end

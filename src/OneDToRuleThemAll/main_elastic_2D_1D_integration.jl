@@ -18,26 +18,25 @@ include("src/postprocesser.jl")
 # Main file for PGD elasticity #
 ################################
 
-function main_elastic_3D_3D_integration()
+function main_elastic_2D_1D_integration()
 
     ############
     # Geometry #
     ############
-    xStart = 0; yStart = 0; zStart = 0
-    xEnd = 1.0; yEnd = 1.0; zEnd = 1.0
-    xnEl = 10; ynEl = 10; znEl = 10
+    xStart = 0; yStart = 0
+    xEnd = 1.0; yEnd = 1.0
+    xnEl = 10; ynEl = 10
 
 
     ###################
     # Displacement, U #
     ###################
     # Mesh
-    xnElNodes = 2; ynElNodes = 2; znElNodes = 2
-    xnNodeDofs = 3; ynNodeDofs = 3; znNodeDofs = 3
+    xnElNodes = 2; ynElNodes = 2
+    xnNodeDofs = 2; ynNodeDofs = 2
 
     xmesh = create_mesh1D(xStart,xEnd,xnEl,xnElNodes,xnNodeDofs)
     ymesh = create_mesh1D(yStart,yEnd,ynEl,ynElNodes,ynNodeDofs)
-    zmesh = create_mesh1D(zStart,zEnd,znEl,znElNodes,znNodeDofs)
 
 
     # Set up the components
@@ -45,11 +44,9 @@ function main_elastic_3D_3D_integration()
     q_rule = QuadratureRule(Dim{1},RefCube(),2)
     fevx = FEValues(Float64,q_rule,function_space)
     fevy = FEValues(Float64,q_rule,function_space)
-    fevz = FEValues(Float64,q_rule,function_space)
 
-    Ux = PGDComponent(xmesh,fevx,1,3)
-    Uy = PGDComponent(ymesh,fevy,2,3)
-    Uz = PGDComponent(zmesh,fevz,3,3)
+    Ux = PGDComponent(xmesh,fevx,1,2)
+    Uy = PGDComponent(ymesh,fevy,2,2)
 
     nxdofs = maximum(xmesh.edof)
     aX = Vector{Float64}[]
@@ -57,19 +54,18 @@ function main_elastic_3D_3D_integration()
     nydofs = maximum(ymesh.edof)
     aY = Vector{Float64}[]
 
-    nzdofs = maximum(zmesh.edof)
-    aZ = Vector{Float64}[]
 
     ############
     # Material #
     ############
     Emod = 1; ν = 0.3
     E = get_E_tensor(Emod, ν, 3)
+    E = convert(Tensor{4,2},E)
 
     #########################
     # Simulation parameters #
     #########################
-    n_modes = 2
+    n_modes = 10
     n_loadsteps = 1
     TOL = 1e-7
     # max_displacement = 0.1*0.5/4
@@ -78,18 +74,15 @@ function main_elastic_3D_3D_integration()
     #######################
     # Boundary conditions #
     #######################
-    xbc = [1:3;(nxdofs-2):nxdofs]
-    ybc = [1:3;(nydofs-2):nydofs]
-    zbc = [1:3;(nzdofs-2):nzdofs]
-    xbc = [1:3;]; #xbc = Int[1, 2, 3, nxdofs-2, nxdofs-1, nxdofs]
-    ybc = [1:3;]; #ybc = Int[1, 2, 3, nydofs-2, nydofs-1, nydofs]
-    zbc = [1:3;]; #zbc = Int[]
+    xbc = [1:2;(nxdofs-1):nxdofs]
+    ybc = [1:2;(nydofs-1):nydofs]
+    xbc = [1:2;]; #xbc = Int[1, 2, 3, nxdofs-2, nxdofs-1, nxdofs]
+    ybc = [1:2;]; #ybc = Int[1, 2, 3, nydofs-2, nydofs-1, nydofs]
 
     # aXd = ones(nxdofs); aXd[xbc] = 0.0
     # aYd = ones(nydofs); aYd[ybc] = 0.0
-    # aZd = ones(nzdofs); aZd[zbc] = 0.0
 
-    # push!(aX,aXd); push!(aY,aYd); push!(aZ,aZd); push!(Es,E)
+    # push!(aX,aXd); push!(aY,aYd); push!(Es,E)
 
     # Dirichlet mode
     aXd = ones(nxdofs)
@@ -100,20 +93,20 @@ function main_elastic_3D_3D_integration()
     aYd[2:3:(end-1)] = 0.0
     aYd[3:3:end] = 0.0
 
-    aZd = ones(nzdofs)
-    aZd[1:3] = 0.0; aZd[(end-2):end] = [1.0,0.0,0.0]
-    aZd[1:3:end-2] = linspace(0,1,length(aZd[1:3:end-2]))
+    # aZd = ones(nzdofs)
+    # aZd[1:3] = 0.0; aZd[(end-2):end] = [1.0,0.0,0.0]
+    # aZd[1:3:end-2] = linspace(0,1,length(aZd[1:3:end-2]))
 
-    # push!(aX,aXd); push!(aY,aYd); push!(aZ,aZd); push!(Es,E)
+    # push!(aX,aXd); push!(aY,aYd); push!(Es,E)
 
     # Body force
-    b = Vec{3}((1.0, 1.0, 1.0))
+    b = Vec{2}((1.0, 1.0))
 
     # ################
     # # Write output #
     # ################
     pvd = paraview_collection("./vtkfiles/vtkoutfile")
-    # vtkwriter(pvd,0,Ux,aX,Uy,aY,Uz,aZ)
+    # vtkwriter(pvd,0,Ux,aX,Uy,aY)
     # return vtk_save(pvd)
     ####################
     # Start simulation #
@@ -130,32 +123,28 @@ function main_elastic_3D_3D_integration()
             push!(aX,aX0)
             aY0 = 0.1*ones(nydofs); #aY0[ybc] = 0.0
             push!(aY,aY0)
-            aZ0 = 0.1*ones(nzdofs); #aZ0[zbc] = 0.0
-            push!(aZ,aZ0)
-            compsold = IterativeFunctionComponents(aX0,aY0,aZ0)
+
+            compsold = IterativeFunctionComponents(aX0,aY0)
 
             while true; iterations += 1
 
-                newXmode = mode_solver(Ux,aX,Uy,aY,Uz,aZ,E,b,xbc,Val{3}())
+                newXmode = mode_solver(Ux,aX,Uy,aY,E,b,xbc,Val{1}())
                 aX[end] = newXmode
 
-                newYmode = mode_solver(Uy,aY,Uz,aZ,Ux,aX,E,b,ybc,Val{3}())
+                newYmode = mode_solver(Uy,aY,Ux,aX,E,b,ybc,Val{1}())
                 aY[end] = newYmode
-
-                newZmode = mode_solver(Uz,aZ,Ux,aX,Uy,aY,E,b,zbc,Val{3}())
-                aZ[end] = newZmode
 
                 # println("Done with iteration $(iterations) for mode $(modeItr).")
 
-                compsnew = IterativeFunctionComponents(newXmode,newYmode,newZmode)
-                xdiff,ydiff,zdiff = iteration_difference(compsnew,compsold)
-                # println("xdiff = $(xdiff), ydiff = $(ydiff), zdiff = $(zdiff)")
+                compsnew = IterativeFunctionComponents(newXmode,newYmode)
+                xdiff,ydiff = iteration_difference(compsnew,compsold)
+                # println("xdiff = $(xdiff), ydiff = $(ydiff)")
                 compsold = compsnew
 
-                if (xdiff < TOL && ydiff < TOL && zdiff < TOL) || iterations > 100
+                if (xdiff < TOL && ydiff < TOL) || iterations > 100
                     println("Converged for mode $(modeItr) after $(iterations) iterations.")
-                    println("xdiff = $(xdiff), ydiff = $(ydiff), zdiff = $(zdiff)")
-                    vtkwriter(pvd,modeItr,Ux,aX,Uy,aY,Uz,aZ)
+                    println("xdiff = $(xdiff), ydiff = $(ydiff)")
+                    vtkwriter(pvd,modeItr,Ux,aX,Uy,aY)
                     break
                 end
 
@@ -172,9 +161,9 @@ function main_elastic_3D_3D_integration()
     end # of loadstepping
 
     vtk_save(pvd)
-    return aX, aY, aZ, Ux, Uy, Uz
+    return aX, aY, Ux, Uy
 end
 
-@time o = main_elastic_3D_3D_integration();
+@time o = main_elastic_2D_1D_integration();
 
 # postprocesser_beam(o...)

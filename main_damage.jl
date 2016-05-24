@@ -93,11 +93,11 @@ function main_damage()
     #########################
     # Simulation parameters #
     #########################
-    U_n_modes = 5
-    D_n_modes = 5
+    U_n_modes = 10
+    D_n_modes = 10
 
-    n_loadsteps = 100
-    max_displacement = 0.1*0.5
+    n_loadsteps = 40
+    max_displacement = 0.1
 
     #######################
     # Material parameters #
@@ -107,13 +107,20 @@ function main_damage()
     U_mp_tangent = TangentStiffness(U_mp)
     U_mp = LinearElastic_withTangent(U_mp,U_mp_tangent)
 
-    gc = 0.01/1000 # 0.01/1000
-    l = 0.05
+    gc = 0.01/100 # 0.01/1000
+    l = 0.1
     D_mp = PhaseFieldDamage(gc,l)
 
     # Set up vector to store elastic energy
     Ψ = [zeros(Float64,length(JuAFEM.points(D.fev.quad_rule))) for i in 1:D.mesh.nEl]
     Ψ_new = copy(Ψ)
+
+    damagedElementsBelow = collect((xnEl*div(ynEl,2)+1):(xnEl*(div(ynEl,2))+div(xnEl,2)))
+    damagedElementsAbove = collect((xnEl*(div(ynEl,2)+1)+1):(xnEl*(div(ynEl,2)+1)+div(xnEl,2)))
+
+    Ψ_d = 0.01*100
+    Ψ[damagedElementsBelow] = [Ψ_d*[0.0,0.0,1.0,1.0] for i in 1:length(damagedElementsBelow)]
+    Ψ[damagedElementsAbove] = [Ψ_d*[1.0,1.0,0.0,0.0] for i in 1:length(damagedElementsAbove)]
 
 
     #######################
@@ -126,7 +133,7 @@ function main_damage()
 
     D_bc, D_dirichletmode = D_BC(D)
     D.modes += 1 # Add the first mode as a dirichlet mode
-    D_a = [D_dirichletmode 0.0*repmat(ones(D_dirichletmode),1,D_n_modes)]
+    D_a = [D_dirichletmode 0.1*repmat(ones(D_dirichletmode),1,D_n_modes)]
     D_a_old = copy(D_a)
 
     # Body force
@@ -145,7 +152,7 @@ function main_damage()
         controlled_displacement = max_displacement*(loadstep/n_loadsteps)
         U_a[:,1] = sqrt(controlled_displacement) * U_dirichletmode # Since `dirichletmode` is squared
 
-        for j in 1:3 # Do some iterations
+        for j in 1:2 # Do some iterations
 
             # Displacement as function of damage
             for modeItr = 2:(U_n_modes + 1)
@@ -176,7 +183,7 @@ function main_damage()
 
             if loadstep > 0 # Since first loadstep is a 0-mode
                 copy!(U_a_old,U_a)
-                # copy!(D_a_old,D_a)
+                copy!(D_a_old,D_a)
             end
             U.modes = 1
             D.modes = 1

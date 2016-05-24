@@ -1,5 +1,5 @@
 # same order * same order
-hadamard{order,dim}(S1::Tensor{order,dim}, S2::Tensor{order,dim}) = S1.*S2
+@inline hadamard{order,dim}(S1::Tensor{order,dim}, S2::Tensor{order,dim}) = S1.*S2
 
 # 1st order * 2nd order
 
@@ -20,7 +20,7 @@ hadamard{order,dim}(S1::Tensor{order,dim}, S2::Tensor{order,dim}) = S1.*S2
     end
 end
 
-function hadamard{dim}(S1::Tensor{1,dim}, S2::SymmetricTensor{2,dim})
+@inline function hadamard{dim}(S1::Tensor{1,dim}, S2::SymmetricTensor{2,dim})
     hadamard(S1,convert(Tensor{2,dim},S2))
 end
 
@@ -41,7 +41,7 @@ end
     end
 end
 
-function hadamard{dim}(S1::SymmetricTensor{2,dim}, S2::Tensor{1,dim})
+@inline function hadamard{dim}(S1::SymmetricTensor{2,dim}, S2::Tensor{1,dim})
     hadamard(convert(Tensor{2,dim},S1), S2)
 end
 
@@ -63,7 +63,7 @@ end
     end
 end
 
-function hadamard{dim}(S1::SecondOrderTensor{dim}, S2::FourthOrderTensor{dim})
+@inline function hadamard{dim}(S1::SecondOrderTensor{dim}, S2::FourthOrderTensor{dim})
     hadamard(convert(Tensor{2,dim},S1),convert(Tensor{4,dim},S2))
 end
 
@@ -83,14 +83,14 @@ end
     end
 end
 
-function hadamard{dim}(S1::FourthOrderTensor{dim}, S2::SecondOrderTensor{dim})
+@inline function hadamard{dim}(S1::FourthOrderTensor{dim}, S2::SecondOrderTensor{dim})
     hadamard(convert(Tensor{4,dim},S1),convert(Tensor{2,dim},S2))
 end
 
 
 # 2nd * 4th * 2nd
 
-function hadamard{dim}(S1::SecondOrderTensor{dim},S2::FourthOrderTensor{dim}, S3::SecondOrderTensor{dim})
+@inline function hadamard{dim}(S1::SecondOrderTensor{dim},S2::FourthOrderTensor{dim}, S3::SecondOrderTensor{dim})
     hadamard(convert(Tensor{2,dim},S1),convert(Tensor{4,dim},S2),convert(Tensor{2,dim},S3))
 end
 
@@ -113,3 +113,13 @@ end
 
 
 const ∘ = hadamard
+
+########################
+# Handle special cases #
+########################
+
+# @inline function hadamard{dim1, dim2}(S1::SecondOrderTensor{dim1},S2::FourthOrderTensor{dim2}, S3::SecondOrderTensor{dim1})
+#     S1a = convert(ContMechTensors.get_main_type(typeof(S1)){2,dim2}, S1)
+#     S3a = convert(ContMechTensors.get_main_type(typeof(S3)){2,dim2}, S3)
+#     return hadamard(S1a,S2,S3a)
+# end

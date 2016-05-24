@@ -28,11 +28,11 @@ function vtkwriter(pvd,U_a,U,step)
     Uy_dof = (U.components[1].mesh.nDofs+1):2:(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs-1)
     Vy_dof = (U.components[1].mesh.nDofs+2):2:(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs)
 
-    Ux = U_a[Ux_dof,:]
-    Vx = U_a[Vx_dof,:]
+    Ux = U_a[Ux_dof,1:nModes(U)]
+    Vx = U_a[Vx_dof,1:nModes(U)]
 
-    Uy = U_a[Uy_dof,:]
-    Vy = U_a[Vy_dof,:]
+    Uy = U_a[Uy_dof,1:nModes(U)]
+    Vy = U_a[Vy_dof,1:nModes(U)]
 
     u = Uy*Ux'
     v = Vy*Vx'
@@ -45,6 +45,20 @@ function vtkwriter(pvd,U_a,U,step)
     # Save to collection
     collection_add_timestep(pvd,vtkfile,float(step))
 
+    # Save to compare with FEM
+    u = u.'
+    v = v.'
+
+    meshsize = (size(u,1)-1, size(u,2)-1)
+
+    writedlm("../../FinalReport/DataPlots/raw_data/elasticshearinclusion/u_PGD_$(nModes(U))modes_$(meshsize[1])_$(meshsize[2]).txt", u)
+    writedlm("../../FinalReport/DataPlots/raw_data/elasticshearinclusion/v_PGD_$(nModes(U))modes_$(meshsize[1])_$(meshsize[2]).txt", v)
+
+    # Save modes
+    writedlm("../../FinalReport/DataPlots/raw_data/elasticshearinclusion/Ux_$(meshsize[1])_$(meshsize[2]).txt",Ux)
+    writedlm("../../FinalReport/DataPlots/raw_data/elasticshearinclusion/Vx_$(meshsize[1])_$(meshsize[2]).txt",Vx)
+    writedlm("../../FinalReport/DataPlots/raw_data/elasticshearinclusion/Uy_$(meshsize[1])_$(meshsize[2]).txt",Uy)
+    writedlm("../../FinalReport/DataPlots/raw_data/elasticshearinclusion/Vy_$(meshsize[1])_$(meshsize[2]).txt",Vy)
 end
 
 ###############################

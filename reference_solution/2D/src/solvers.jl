@@ -10,9 +10,9 @@ function U_solver(u,u_mesh,u_free,u_fe_values,u_mp,b::Vector)
         u_tri[u_free] += Δu
 
         g = U_residual(u_tri,u_mesh,u_free,u_fe_values,u_mp,b)
-
-        if norm(g) < tol
-            # println("Displacement field, u, converged in $i iterations, r = $(norm(g)).")
+        println(norm(g))
+        if norm(g) < TOL
+            println("Displacement field, u, converged in $i iterations, r = $(norm(g)).")
             break
         end
 
@@ -20,7 +20,7 @@ function U_solver(u,u_mesh,u_free,u_fe_values,u_mp,b::Vector)
         ΔΔu = cholfact(Symmetric(K, :U))\g
         Δu -= ΔΔu
 
-        return Δu # Since I know its linear
+        # return Δu # Since I know its linear
     end
 
     return Δu

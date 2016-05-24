@@ -35,26 +35,33 @@ function main_damage()
 
     Ψ = [zeros(length(JuAFEM.points(quad_rule))) for i in 1:u_mesh.nEl]
 
-    gc = 0.01/1000
-    l = 0.05
+    damagedElementsBelow = collect((nElx*div(nEly,2)+1):(nElx*(div(nEly,2))+div(nElx,2)))
+    damagedElementsAbove = collect((nElx*(div(nEly,2)+1)+1):(nElx*(div(nEly,2)+1)+div(nElx,2)))
+
+    Ψ_d = 0.01*100
+    Ψ[damagedElementsBelow] = [Ψ_d*[0.0,0.0,1.0,1.0] for i in 1:length(damagedElementsBelow)]
+    Ψ[damagedElementsAbove] = [Ψ_d*[1.0,1.0,0.0,0.0] for i in 1:length(damagedElementsAbove)]
+
+    gc = 0.01/100
+    l = 0.1
     d_mp = PhaseFieldDamage(gc,l)
 
     # Boundary conditions
-    u_prescr = u_mesh.b3[2,:][:]
-    u_fixed = [u_mesh.b1[1,:][:]; u_mesh.b1[2,:][:]; u_mesh.b3[1,:][:]]
+    u_prescr = u_mesh.b3[1,:][:]
+    u_fixed = [u_mesh.b1[1,:][:]; u_mesh.b1[2,:][:]; u_mesh.b3[2,:][:]]
     u_free = setdiff(1:u_mesh.nDofs,[u_prescr; u_fixed])
 
     # d_prescr = [collect((101*49 + 1):(101*49 + 41));
     #             collect((101*50 + 1):(101*50 + 41));
     #             collect((101*51 + 1):(101*51 + 41))]
-    d_prescr = collect(((nElx+1)*div(nEly,2) + 1):((nElx+1)*div(nEly,2) + Int(ceil(nElx/2))))
-    # d_prescr = []
+    # d_prescr = collect(((nElx+1)*div(nEly,2) + 1):((nElx+1)*div(nEly,2) + Int(ceil(nElx/2))))
+    d_prescr = []
 
     d_fixed = []
     d_free = setdiff(1:d_mesh.nDofs,[d_prescr; d_fixed])
 
-    n_loadsteps = 100
-    u_prescr_max = 0.1*0.5/4
+    n_loadsteps = 40
+    u_prescr_max = 0.1
 
     u = zeros(u_mesh.nDofs)
     d = zeros(d_mesh.nDofs)

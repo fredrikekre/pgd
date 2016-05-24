@@ -16,8 +16,8 @@ function main_elastic()
     pvd = paraview_collection("./vtkfiles_elastic/vtkoutfile")
 
     # Problem parameters
-    xStart = 0.0; xEnd = 1.0; nElx = 50
-    yStart = 0.0; yEnd = 1.0; nEly = 50
+    xStart = 0.0; xEnd = 1.0; nElx = 100
+    yStart = 0.0; yEnd = 1.0; nEly = 100
     u_nNodeDofs = 2
     u_mesh = create_mesh2D(xStart,xEnd,yStart,yEnd,nElx,nEly,u_nNodeDofs)
     b = [0.0, 0.0]
@@ -32,16 +32,16 @@ function main_elastic()
     u_mp = LinearElastic(:E,E,:ν,ν)
 
     # Boundary conditions
-    u_prescr = u_mesh.b3[2,:][:]
-    u_fixed = [u_mesh.b1[1,:][:]; u_mesh.b1[2,:][:]; u_mesh.b3[1,:][:]]
+    u_prescr = u_mesh.b3[1,:][:]
+    u_fixed = [u_mesh.b1[1,:][:]; u_mesh.b1[2,:][:]; u_mesh.b3[2,:][:]]
     u_free = setdiff(1:u_mesh.nDofs,[u_prescr; u_fixed])
 
-    n_loadsteps = 2
-    u_prescr_max = 0.1
+    n_loadsteps = 1
+    u_prescr_max = 0.5
 
     u = zeros(u_mesh.nDofs)
 
-    for loadstep in 0:n_loadsteps
+    for loadstep in 1:n_loadsteps
         print_loadstep(loadstep,n_loadsteps)
         u_prescribed_value = u_prescr_max*(loadstep/n_loadsteps)
 
@@ -55,6 +55,7 @@ function main_elastic()
         vtkwriter(pvd,loadstep,u_mesh,u)
     end
     vtk_save(pvd)
+    save_pgd_format(u)
     return u
 end
 

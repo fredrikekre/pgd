@@ -38,6 +38,35 @@ function build_function{T}(Ux::PGDComponent, ax::Vector{Vector{T}},
     return U, V, W
 end
 
+function build_function{T}(Ux::PGDComponent, ax::Vector{Vector{T}},
+                          Uy::PGDComponent, ay::Vector{Vector{T}})
+
+    length(ax) == length(ay) || throw(ArgumentError("Noob."))
+
+    Uxdofs = 1:2:(Ux.mesh.nDofs-1)
+    Vxdofs = 2:2:(Ux.mesh.nDofs-0)
+
+    Uydofs = 1:2:(Uy.mesh.nDofs-1)
+    Vydofs = 2:2:(Uy.mesh.nDofs-0)
+
+    lax = div(length(ax[1]),2)
+    lay = div(length(ay[1]),2)
+
+    U = zeros(lax,lay,1)
+    V = zeros(lax,lay,1)
+
+    number_of_modes = length(ax)
+
+    for mode in 1:number_of_modes
+        Ui = vec_mul_vec_mul_vec(ax[mode][Uxdofs],ay[mode][Uydofs],[1.0])
+        U += Ui
+        Vi = vec_mul_vec_mul_vec(ax[mode][Vxdofs],ay[mode][Vydofs],[1.0])
+        V += Vi
+    end
+
+    return U, V
+end
+
 function vec_mul_vec_mul_vec{T}(x::Vector{T},y::Vector{T},z::Vector{T})
     lx = length(x); ly = length(y); lz = length(z)
 
@@ -48,25 +77,45 @@ function vec_mul_vec_mul_vec{T}(x::Vector{T},y::Vector{T},z::Vector{T})
     return reshape(data,(lx,ly,lz))
 end
 
-type IterativeFunctionComponents{T}
-    Ux::Vector{T}
-    Uy::Vector{T}
-    Uz::Vector{T}
+type IterativeFunctionComponents{Dim,T}
+    U::Vector{Vector{T}}
+    dims::Val{Dim}
 end
 
-function reset(comps::IterativeFunctionComponents)
-    lx = length(comps.Ux)
-    ly = length(comps.Uy)
-    lz = length(comps.Uz)
-    return IterativeFunctionComponents(ones(lx), ones(ly), ones(lz))
+function IterativeFunctionComponents{T}(x::Vector{T},y::Vector{T},z::Vector{T})
+    return IterativeFunctionComponents(Vector{T}[x,y,z],Val{3}())
 end
 
-function iteration_difference(compsnew::IterativeFunctionComponents, compsold::IterativeFunctionComponents)
-    xdiff = norm(compsnew.Ux - compsold.Ux)/norm(compsold.Ux)
-    ydiff = norm(compsnew.Uy - compsold.Uy)/norm(compsold.Uy)
-    zdiff = norm(compsnew.Uz - compsold.Uz)/norm(compsold.Uz)
+function IterativeFunctionComponents{T}(x::Vector{T},y::Vector{T})
+    return IterativeFunctionComponents(Vector{T}[x,y],Val{2}())
+end
+
+function reset{T}(comps::IterativeFunctionComponents{3,T})
+    lx = length(comps.U[1])
+    ly = length(comps.U[2])
+    lz = length(comps.U[3])
+    return IterativeFunctionComponents(Vector{T}[ones(T,lx), ones(T,ly), ones(T,lz)], Val{3}())
+end
+
+function reset{T}(comps::IterativeFunctionComponents{2,T})
+    lx = length(comps.U[1])
+    ly = length(comps.U[2])
+    return IterativeFunctionComponents(Vector{T}[ones(T,lx), ones(T,ly)], Val{2}())
+end
+
+function iteration_difference(compsnew::IterativeFunctionComponents{3}, compsold::IterativeFunctionComponents{3})
+    xdiff = norm(compsnew.U[1] - compsold.U[1])/norm(compsold.U[1])
+    ydiff = norm(compsnew.U[2] - compsold.U[2])/norm(compsold.U[2])
+    zdiff = norm(compsnew.U[3] - compsold.U[3])/norm(compsold.U[3])
 
     return xdiff, ydiff, zdiff
+end
+
+function iteration_difference(compsnew::IterativeFunctionComponents{2}, compsold::IterativeFunctionComponents{2})
+    xdiff = norm(compsnew.U[1] - compsold.U[1])/norm(compsold.U[1])
+    ydiff = norm(compsnew.U[2] - compsold.U[2])/norm(compsold.U[2])
+
+    return xdiff, ydiff
 end
 
 

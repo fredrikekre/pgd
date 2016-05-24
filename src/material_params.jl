@@ -10,6 +10,9 @@ immutable LinearElastic{T} <: MaterialParameters{T}
     λ::T
 end
 
+Base.(:*){T}(mp::LinearElastic{T},x::T) = LinearElastic(:E,x*mp.E,:ν,mp.ν)
+Base.(:*){T}(x::T,mp::LinearElastic{T}) = mp*x
+
 function LinearElastic{T}(p1::Symbol,v1::T,p2::Symbol,v2::T)
     if p1 == :E && p2 == :ν
         E = v1; ν = v2
@@ -46,6 +49,13 @@ immutable LinearElastic_withTangent{T}
     mp::LinearElastic{T}
     tangent::Matrix{T}
 end
+
+function Base.(:*){T}(mp::LinearElastic_withTangent{T},x::T)
+    return LinearElastic_withTangent(x*mp.mp, x*mp.tangent)
+end
+
+
+Base.(:*){T}(x::T,mp::LinearElastic_withTangent{T}) = mp*x
 
 
 # Damage parameters

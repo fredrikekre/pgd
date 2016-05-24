@@ -18,7 +18,7 @@ function U_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_e
 
     Δan = copy(Δan_0)
     # Δan_y = copy(Δan_y_0)
-    i = -1; TOL = 1e-6; maxofg = 1
+    i = -1; TOL = 1e-6; maxofg = 1; relax = 0.9
     while true; i += 1
         copy!(trial_solution,full_solution)
         trial_solution[free_dofs(U_bc)] += Δan[free_dofs(U_bc)]
@@ -49,10 +49,10 @@ function U_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_e
             K_x = calc_globK_U(trial_solution,U_a,U,U_edof,free_dofs(U_bc,1),
                                                 U_mp,b)
             ΔΔan = cholfact(Symmetric(K_x, :U))\g_x
-            Δan[free_dofs(U_bc,1)] -= ΔΔan
+            Δan[free_dofs(U_bc,1)] -= ΔΔan*relax
 
             # Update trial solution? Yes, should help when solving for y-dir
-            trial_solution[free_dofs(U_bc,1)] -= ΔΔan # or trial_solution[free_dofs(bc_U,1)] = full_solution[free_dofs(bc_U,1)] + Δan[free_dofs(bc_U,1)]
+            trial_solution[free_dofs(U_bc,1)] -= ΔΔan*relax # or trial_solution[free_dofs(bc_U,1)] = full_solution[free_dofs(bc_U,1)] + Δan[free_dofs(bc_U,1)]
 
             #################
             # Step in y-dir #
@@ -62,7 +62,7 @@ function U_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_e
             K_y = calc_globK_U(trial_solution,U_a,U,U_edof,free_dofs(U_bc,2),
                                                 U_mp,b)
             ΔΔan = cholfact(Symmetric(K_y, :U))\g_y
-            Δan[free_dofs(U_bc,2)] -= ΔΔan
+            Δan[free_dofs(U_bc,2)] -= ΔΔan*relax
 
             # trial_solution[free_dofs(bc_U,2)] -= ΔΔan # or trial_solution[free_dofs(bc_U,2)] = full_solution[free_dofs(bc_U,2)] + Δan[free_dofs(bc_U,2)]
 
@@ -103,7 +103,7 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
 
     Δan = copy(Δan_0)
     # Δan_y = copy(Δan_y_0)
-    i = -1; TOL = 1e-6; maxofg = 1.0
+    i = -1; TOL = 1e-6; maxofg = 1.0; relax = 0.9
     while true; i += 1
         copy!(trial_solution,full_solution)
         trial_solution[free_dofs(U_bc)] += Δan[free_dofs(U_bc)]
@@ -136,10 +136,10 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
                                                D_a,D,D_edof,
                                                U_mp,b)
             ΔΔan = cholfact(Symmetric(K_x, :U))\g_x
-            Δan[free_dofs(U_bc,1)] -= ΔΔan
+            Δan[free_dofs(U_bc,1)] -= ΔΔan*relax
 
             # Update trial solution? Yes, should help when solving for y-dir
-            trial_solution[free_dofs(U_bc,1)] -= ΔΔan # or trial_solution[free_dofs(bc_U,1)] = full_solution[free_dofs(bc_U,1)] + Δan[free_dofs(bc_U,1)]
+            trial_solution[free_dofs(U_bc,1)] -= ΔΔan*relax # or trial_solution[free_dofs(bc_U,1)] = full_solution[free_dofs(bc_U,1)] + Δan[free_dofs(bc_U,1)]
 
             #################
             # Step in y-dir #
@@ -151,7 +151,7 @@ function UD_ModeSolver(U_a::Matrix,U_a_old::Matrix,U::PGDFunction,U_bc::PGDBC,U_
                                                D_a,D,D_edof,
                                                U_mp,b)
             ΔΔan = cholfact(Symmetric(K_y, :U))\g_y
-            Δan[free_dofs(U_bc,2)] -= ΔΔan
+            Δan[free_dofs(U_bc,2)] -= ΔΔan*relax
 
             # trial_solution[free_dofs(bc_U,2)] -= ΔΔan # or trial_solution[free_dofs(bc_U,2)] = full_solution[free_dofs(bc_U,2)] + Δan[free_dofs(bc_U,2)]
 
@@ -179,8 +179,8 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
     full_solution = zeros(number_of_dofs(D_edof))
     trial_solution = zeros(number_of_dofs(D_edof))
 
-    # Δan_0 = D_a_old[:,modeItr]
-    Δan_0 = 0.01*ones(number_of_dofs(D_edof))
+    Δan_0 = D_a_old[:,modeItr]
+    # Δan_0 = 0.01*ones(number_of_dofs(D_edof))
     Δan_0[fixed_dofs(D_bc)] = 0.0
     Δan_0[prescr_dofs(D_bc)] = 0.0
 
@@ -191,7 +191,7 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
 
     Δan = copy(Δan_0)
     # Δan_y = copy(Δan_y_0)
-    i = -1; TOL = 1e-12; maxofg = 1.0
+    i = -1; TOL = 1e-9; maxofg = 1.0; relax = 0.9
     while true; i += 1
         copy!(trial_solution,full_solution)
         trial_solution[free_dofs(D_bc)] += Δan[free_dofs(D_bc)]
@@ -200,7 +200,7 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
                                            D_mp,Ψ)
 
         maxofg = norm(g)
-        print("norm(g_d) = $maxofg ...")
+        # print("norm(g_d) = $maxofg ...")
         if maxofg < TOL # converged
 
             # D_atemp = copy(D_a)
@@ -225,10 +225,10 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
                                                  D_mp,Ψ)
 
             ΔΔan = cholfact(Symmetric(K_x, :U))\g_x
-            Δan[free_dofs(D_bc,1)] -= ΔΔan
+            Δan[free_dofs(D_bc,1)] -= ΔΔan*relax
 
             # Update trial solution? Yes, should help when solving for y-dir
-            trial_solution[free_dofs(D_bc,1)] -= ΔΔan # or trial_solution[free_dofs(bc_U,1)] = full_solution[free_dofs(bc_U,1)] + Δan[free_dofs(bc_U,1)]
+            trial_solution[free_dofs(D_bc,1)] -= ΔΔan*relax # or trial_solution[free_dofs(bc_U,1)] = full_solution[free_dofs(bc_U,1)] + Δan[free_dofs(bc_U,1)]
 
             #################
             # Step in y-dir #
@@ -239,11 +239,11 @@ function DU_ModeSolver(D_a::Matrix,D_a_old::Matrix,D::PGDFunction,D_bc::PGDBC,D_
                                                  D_mp,Ψ)
 
             ΔΔan = cholfact(Symmetric(K_y, :U))\g_y
-            Δan[free_dofs(D_bc,2)] -= ΔΔan
+            Δan[free_dofs(D_bc,2)] -= ΔΔan*relax
 
             # trial_solution[free_dofs(bc_U,2)] -= ΔΔan # or trial_solution[free_dofs(bc_U,2)] = full_solution[free_dofs(bc_U,2)] + Δan[free_dofs(bc_U,2)]
 
-            if i > 20
+            if i > 149
                 warn("Exited loop after $i iterations with residual $maxofg")
                 break
             end

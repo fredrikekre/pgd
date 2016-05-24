@@ -2,10 +2,19 @@
 # Displacement #
 ################
 
-function U_residual{T}(u::Vector{T},u_mesh,u_free,u_fe_values,mp,b::Vector=zeros(2))
+function U_residual{T}(u::Vector{T},u_mesh,u_free,u_fe_values,mp,b::Vector)
     # Calculate global residual, g
     ndofs = maximum(u_mesh.edof)
     g = zeros(ndofs)
+
+    section = collect(31:70) + 30*100
+    incl_ele = Int[]
+    for i in 1:length(section)
+        append!(incl_ele,section + 100*(i-1))
+    end
+
+    hardmat = ones(u_mesh.nEl)
+    hardmat[incl_ele] = 10.0
 
     for i = 1:u_mesh.nEl
         x = [u_mesh.ex[:,i] u_mesh.ey[:,i]]'
@@ -13,7 +22,7 @@ function U_residual{T}(u::Vector{T},u_mesh,u_free,u_fe_values,mp,b::Vector=zeros
         JuAFEM.reinit!(u_fe_values,x)
         u_m = u_mesh.edof[:,i]
 
-        ge = U_intf(u[u_m],u_fe_values,mp,b)
+        ge = U_intf(u[u_m],u_fe_values,mp*hardmat[i],b)
 
         g[u_m] += ge
     end
@@ -27,6 +36,15 @@ function U_jacobian{T}(u::Vector{T},u_mesh,u_free,u_fe_values,mp,b::Vector=zeros
     _K = JuAFEM.start_assemble()
     cache = ForwardDiffCache()
 
+    section = collect(31:70) + 30*100
+    incl_ele = Int[]
+    for i in 1:length(section)
+        append!(incl_ele,section + 100*(i-1))
+    end
+
+    hardmat = ones(u_mesh.nEl)
+    hardmat[incl_ele] = 10.0
+
     for i = 1:u_mesh.nEl
         x = [u_mesh.ex[:,i] u_mesh.ey[:,i]]'
         x = reinterpret(Vec{2,T},x,(size(x,2),))
@@ -35,7 +53,7 @@ function U_jacobian{T}(u::Vector{T},u_mesh,u_free,u_fe_values,mp,b::Vector=zeros
         JuAFEM.reinit!(u_fe_values,x)
         u_m = u_mesh.edof[:,i]
 
-        U_intf_closure(u) = U_intf(u,u_fe_values,mp,b)
+        U_intf_closure(u) = U_intf(u,u_fe_values,mp*hardmat[i],b)
 
         kefunc = ForwardDiff.jacobian(U_intf_closure, cache=cache)
         Ke = kefunc(u[u_m])

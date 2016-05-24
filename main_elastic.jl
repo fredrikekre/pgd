@@ -29,7 +29,7 @@ function main_elastic()
     ############
     xStart = 0; yStart = 0
     xEnd = 1; yEnd = 1
-    xnEl = 50; ynEl = 50
+    xnEl = 100; ynEl = 100
 
 
     ###################
@@ -64,10 +64,10 @@ function main_elastic()
     #########################
     # Simulation parameters #
     #########################
-    U_n_modes = 5
+    U_n_modes = 40
 
     n_loadsteps = 1
-    max_displacement = 0.1
+    max_displacement = 0.5
 
     #######################
     # Material parameters #
@@ -97,10 +97,13 @@ function main_elastic()
     ####################
     # Start simulation #
     ####################
-    for loadstep in 0:n_loadsteps
+    for loadstep in 1:n_loadsteps
     print_loadstep(loadstep,n_loadsteps)
         controlled_displacement = max_displacement*(loadstep/n_loadsteps)
         U_a[:,1] = sqrt(controlled_displacement) * U_dirichletmode # Since `dirichletmode` is squared
+
+        # Save dirichletmode
+        vtkwriter(pvd,U_a,U,1)
 
         # Displacement
         for modeItr = 2:(U_n_modes + 1)
@@ -111,10 +114,11 @@ function main_elastic()
             U_a[:,modeItr] = newMode
             U.modes = modeItr
             println("done!")
+            vtkwriter(pvd,U_a,U,modeItr) # Save each mode
         end # of mode iterations
 
         # Write to file
-        vtkwriter(pvd,U_a,U,loadstep)
+        # vtkwriter(pvd,U_a,U,loadstep)
         if loadstep > 0 # Since first loadstep is a 0-mode
             copy!(U_a_old,U_a)
         end
