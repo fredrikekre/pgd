@@ -39,7 +39,8 @@ function mode_solver{T}(U1::PGDComponent, a1::Vector{Vector{T}},
     a1new = zeros(nDofs)
     a1new[free] += K[free,free]\fext[free]
 
-    return a1new
+    relax = 0.9
+    return a1new*relax
 end
 
 ##########################

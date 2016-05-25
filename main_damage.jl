@@ -96,8 +96,8 @@ function main_damage()
     U_n_modes = 10
     D_n_modes = 10
 
-    n_loadsteps = 40
-    max_displacement = 0.1
+    n_loadsteps = 20
+    max_displacement = 0.05
 
     #######################
     # Material parameters #
@@ -115,8 +115,8 @@ function main_damage()
     Ψ = [zeros(Float64,length(JuAFEM.points(D.fev.quad_rule))) for i in 1:D.mesh.nEl]
     Ψ_new = copy(Ψ)
 
-    damagedElementsBelow = collect((xnEl*div(ynEl,2)+1):(xnEl*(div(ynEl,2))+div(xnEl,2)))
-    damagedElementsAbove = collect((xnEl*(div(ynEl,2)+1)+1):(xnEl*(div(ynEl,2)+1)+div(xnEl,2)))
+    damagedElementsBelow = collect((xnEl*(div(ynEl,2)-1)+1):(xnEl*(div(ynEl,2)-1)+div(xnEl,2)))
+    damagedElementsAbove = collect((xnEl*div(ynEl,2)+1):(xnEl*div(ynEl,2)+div(xnEl,2)))
 
     Ψ_d = 0.01*100
     Ψ[damagedElementsBelow] = [Ψ_d*[0.0,0.0,1.0,1.0] for i in 1:length(damagedElementsBelow)]
@@ -155,6 +155,7 @@ function main_damage()
         for j in 1:2 # Do some iterations
 
             # Displacement as function of damage
+            U.modes = 1
             for modeItr = 2:(U_n_modes + 1)
                 print_modeitr(modeItr-1,U_n_modes,"displacement")
                 newMode, Ψ_new = UD_ModeSolver(U_a,U_a_old,U,U_bc,U_edof,
@@ -172,6 +173,7 @@ function main_damage()
             end
 
             # Damage as function of the displacement
+            D.modes = 1
             for modeItr = 2:(D_n_modes + 1)
                 print_modeitr(modeItr-1,D_n_modes,"damage")
                 newMode = DU_ModeSolver(D_a,D_a_old,D,D_bc,D_edof,
@@ -185,8 +187,6 @@ function main_damage()
                 copy!(U_a_old,U_a)
                 copy!(D_a_old,D_a)
             end
-            U.modes = 1
-            D.modes = 1
 
         end
 

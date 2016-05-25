@@ -79,7 +79,7 @@ free_dofs(bc::PGDBC,dim::Int) = bc.free[dim]
 #     return PGDBC(fixed,prescr,free), dirichletmode
 # end
 
-# function U_BC(U::PGDFunction) # fixed at bottom, moving top up
+# function U_BC(U::PGDFunction) # fixed at bottom, moving top up, also fixed in x on top
 
 #     x_mode_dofs = collect(1:U.components[1].mesh.nDofs)
 #     y_mode_dofs = collect((U.components[1].mesh.nDofs+1):(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs))
@@ -123,6 +123,51 @@ free_dofs(bc::PGDBC,dim::Int) = bc.free[dim]
 
 #     return PGDBC(fixed,prescr,free), dirichletmode
 # end
+
+function U_BC(U::PGDFunction) # fixed at bottom, moving top up, not fixed in x at top
+
+    x_mode_dofs = collect(1:U.components[1].mesh.nDofs)
+    y_mode_dofs = collect((U.components[1].mesh.nDofs+1):(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs))
+
+    # bc_Ux: Lock y_mode_dofs
+    fixed_Ux = Int[x_mode_dofs[[]];
+                   y_mode_dofs]
+    prescr_Ux = Int[]
+    free_Ux = setdiff(x_mode_dofs,[fixed_Ux; prescr_Ux])
+
+    # bc_Uy: Lock x_mode_dofs
+    fixed_Uy = Int[x_mode_dofs;
+                   y_mode_dofs[[1,2,end]]]
+    prescr_Uy = Int[]
+    free_Uy = setdiff(y_mode_dofs,[fixed_Uy; prescr_Uy])
+
+    # bc_U: Total bc's
+    fixed_U = Int[x_mode_dofs[[]];
+                  y_mode_dofs[[1,2,end]]]
+    prescr_U = Int[]
+    free_U = setdiff([x_mode_dofs; y_mode_dofs], [fixed_U; prescr_U])
+
+    # Combine and return
+    fixed = Vector{Int}[fixed_Ux,fixed_Uy,fixed_U]
+    prescr = Vector{Int}[prescr_Ux,prescr_Uy,prescr_U]
+    free = Vector{Int}[free_Ux,free_Uy,free_U]
+
+    # Create a dirichletmode which fulfills the non-homogeneous Dirichlet bc's
+    Ux_dof = 1:2:(U.components[1].mesh.nDofs-1)
+    Vx_dof = 2:2:(U.components[1].mesh.nDofs)
+    Uy_dof = (U.components[1].mesh.nDofs+1):2:(U.components[1].mesh.nDofs+U.components[1].mesh.nDofs-1)
+    Vy_dof = (U.components[1].mesh.nDofs+2):2:(U.components[1].mesh.nDofs+U.components[1].mesh.nDofs)
+
+    Ux_dirichlet = float(zeros(Ux_dof))
+    Uy_dirichlet = float(zeros(Uy_dof))
+
+    Vx_dirichlet = float(ones(Vx_dof))
+    Vy_dirichlet = U.components[2].mesh.x / maximum(U.components[2].mesh.x)
+
+    dirichletmode = [zipper(Ux_dirichlet,Vx_dirichlet); zipper(Uy_dirichlet,Vy_dirichlet)]
+
+    return PGDBC(fixed,prescr,free), dirichletmode
+end
 
 # function U_BC(U::PGDFunction) # fixed at bottom (only in y), moving top up
 
@@ -169,50 +214,50 @@ free_dofs(bc::PGDBC,dim::Int) = bc.free[dim]
 #     return PGDBC(fixed,prescr,free), dirichletmode
 # end
 
-function U_BC(U::PGDFunction) # fixed at bottom, moving top top the right
+# function U_BC(U::PGDFunction) # fixed at bottom, moving top top the right
 
-    x_mode_dofs = collect(1:U.components[1].mesh.nDofs)
-    y_mode_dofs = collect((U.components[1].mesh.nDofs+1):(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs))
+#     x_mode_dofs = collect(1:U.components[1].mesh.nDofs)
+#     y_mode_dofs = collect((U.components[1].mesh.nDofs+1):(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs))
 
-    # bc_Ux: Lock y_mode_dofs
-    fixed_Ux = Int[x_mode_dofs[[]];
-                   y_mode_dofs]
-    prescr_Ux = Int[]
-    free_Ux = setdiff(x_mode_dofs,[fixed_Ux; prescr_Ux])
+#     # bc_Ux: Lock y_mode_dofs
+#     fixed_Ux = Int[x_mode_dofs[[]];
+#                    y_mode_dofs]
+#     prescr_Ux = Int[]
+#     free_Ux = setdiff(x_mode_dofs,[fixed_Ux; prescr_Ux])
 
-    # bc_Uy: Lock x_mode_dofs
-    fixed_Uy = Int[x_mode_dofs;
-                   y_mode_dofs[[1,2,end-1,end]]]
-    prescr_Uy = Int[]
-    free_Uy = setdiff(y_mode_dofs,[fixed_Uy; prescr_Uy])
+#     # bc_Uy: Lock x_mode_dofs
+#     fixed_Uy = Int[x_mode_dofs;
+#                    y_mode_dofs[[1,2,end-1,end]]]
+#     prescr_Uy = Int[]
+#     free_Uy = setdiff(y_mode_dofs,[fixed_Uy; prescr_Uy])
 
-    # bc_U: Total bc's
-    fixed_U = Int[x_mode_dofs[[]];
-                  y_mode_dofs[[1,2,end-1,end]]]
-    prescr_U = Int[]
-    free_U = setdiff([x_mode_dofs; y_mode_dofs], [fixed_U; prescr_U])
+#     # bc_U: Total bc's
+#     fixed_U = Int[x_mode_dofs[[]];
+#                   y_mode_dofs[[1,2,end-1,end]]]
+#     prescr_U = Int[]
+#     free_U = setdiff([x_mode_dofs; y_mode_dofs], [fixed_U; prescr_U])
 
-    # Combine and return
-    fixed = Vector{Int}[fixed_Ux,fixed_Uy,fixed_U]
-    prescr = Vector{Int}[prescr_Ux,prescr_Uy,prescr_U]
-    free = Vector{Int}[free_Ux,free_Uy,free_U]
+#     # Combine and return
+#     fixed = Vector{Int}[fixed_Ux,fixed_Uy,fixed_U]
+#     prescr = Vector{Int}[prescr_Ux,prescr_Uy,prescr_U]
+#     free = Vector{Int}[free_Ux,free_Uy,free_U]
 
-    # Create a dirichletmode which fulfills the non-homogeneous Dirichlet bc's
-    Ux_dof = 1:2:(U.components[1].mesh.nDofs-1)
-    Vx_dof = 2:2:(U.components[1].mesh.nDofs)
-    Uy_dof = (U.components[1].mesh.nDofs+1):2:(U.components[1].mesh.nDofs+U.components[1].mesh.nDofs-1)
-    Vy_dof = (U.components[1].mesh.nDofs+2):2:(U.components[1].mesh.nDofs+U.components[1].mesh.nDofs)
+#     # Create a dirichletmode which fulfills the non-homogeneous Dirichlet bc's
+#     Ux_dof = 1:2:(U.components[1].mesh.nDofs-1)
+#     Vx_dof = 2:2:(U.components[1].mesh.nDofs)
+#     Uy_dof = (U.components[1].mesh.nDofs+1):2:(U.components[1].mesh.nDofs+U.components[1].mesh.nDofs-1)
+#     Vy_dof = (U.components[1].mesh.nDofs+2):2:(U.components[1].mesh.nDofs+U.components[1].mesh.nDofs)
 
-    Ux_dirichlet = float(ones(Ux_dof))
-    Uy_dirichlet = U.components[2].mesh.x / maximum(U.components[2].mesh.x)
+#     Ux_dirichlet = float(ones(Ux_dof))
+#     Uy_dirichlet = U.components[2].mesh.x / maximum(U.components[2].mesh.x)
 
-    Vx_dirichlet = float(zeros(Vx_dof))
-    Vy_dirichlet = float(zeros(Vy_dof)) # U.components[2].mesh.x / maximum(U.components[2].mesh.x)
+#     Vx_dirichlet = float(zeros(Vx_dof))
+#     Vy_dirichlet = float(zeros(Vy_dof)) # U.components[2].mesh.x / maximum(U.components[2].mesh.x)
 
-    dirichletmode = [zipper(Ux_dirichlet,Vx_dirichlet); zipper(Uy_dirichlet,Vy_dirichlet)]
+#     dirichletmode = [zipper(Ux_dirichlet,Vx_dirichlet); zipper(Uy_dirichlet,Vy_dirichlet)]
 
-    return PGDBC(fixed,prescr,free), dirichletmode
-end
+#     return PGDBC(fixed,prescr,free), dirichletmode
+# end
 
 # function U_BC(U::PGDFunction) # fixed at bot and left, no prescribed values
 

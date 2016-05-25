@@ -26,7 +26,7 @@ function main_elastic_3D_1D_integration()
     ############
     xStart = 0; yStart = 0; zStart = 0
     xEnd = 1.0; yEnd = 1.0; zEnd = 1.0
-    xnEl = 10; ynEl = 10; znEl = 10
+    xnEl = 100; ynEl = 100; znEl = 100
 
 
     ###################
@@ -70,7 +70,7 @@ function main_elastic_3D_1D_integration()
     #########################
     # Simulation parameters #
     #########################
-    n_modes = 2
+    n_modes = 20
     n_loadsteps = 1
     TOL = 1e-7
     # max_displacement = 0.1*0.5/4

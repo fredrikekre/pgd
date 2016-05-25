@@ -18,14 +18,15 @@ include("src/postprocesser.jl")
 # Main file for PGD elasticity #
 ################################
 
-function main_elastic_3D_3D_integration()
+function threedeebeam()
+    # const to = TimerOutput()
 
     ############
     # Geometry #
     ############
     xStart = 0; yStart = 0; zStart = 0
-    xEnd = 1.0; yEnd = 1.0; zEnd = 1.0
-    xnEl = 10; ynEl = 10; znEl = 10
+    xEnd = 10.0; yEnd = 1.0; zEnd = 1.0
+    xnEl = 100; ynEl = 10; znEl = 10
 
 
     ###################
@@ -85,6 +86,10 @@ function main_elastic_3D_3D_integration()
     ybc = [1:3;]; #ybc = Int[1, 2, 3, nydofs-2, nydofs-1, nydofs]
     zbc = [1:3;]; #zbc = Int[]
 
+    xbc = [1:3;]
+    ybc = Int[]
+    zbc = Int[]
+
     # aXd = ones(nxdofs); aXd[xbc] = 0.0
     # aYd = ones(nydofs); aYd[ybc] = 0.0
     # aZd = ones(nzdofs); aZd[zbc] = 0.0
@@ -107,7 +112,7 @@ function main_elastic_3D_3D_integration()
     # push!(aX,aXd); push!(aY,aYd); push!(aZ,aZd); push!(Es,E)
 
     # Body force
-    b = Vec{3}((1.0, 1.0, 1.0))
+    b = Vec{3}((0.000001, 0.000001, -1.0))
 
     # ################
     # # Write output #
@@ -136,13 +141,13 @@ function main_elastic_3D_3D_integration()
 
             while true; iterations += 1
 
-                newXmode = mode_solver(Ux,aX,Uy,aY,Uz,aZ,E,b,xbc,Val{3}())
+                newXmode = mode_solver(Ux,aX,Uy,aY,Uz,aZ,E,b,xbc,Val{1}())
                 aX[end] = newXmode
 
-                newYmode = mode_solver(Uy,aY,Uz,aZ,Ux,aX,E,b,ybc,Val{3}())
+                newYmode = mode_solver(Uy,aY,Uz,aZ,Ux,aX,E,b,ybc,Val{1}())
                 aY[end] = newYmode
 
-                newZmode = mode_solver(Uz,aZ,Ux,aX,Uy,aY,E,b,zbc,Val{3}())
+                newZmode = mode_solver(Uz,aZ,Ux,aX,Uy,aY,E,b,zbc,Val{1}())
                 aZ[end] = newZmode
 
                 # println("Done with iteration $(iterations) for mode $(modeItr).")
@@ -175,6 +180,6 @@ function main_elastic_3D_3D_integration()
     return aX, aY, aZ, Ux, Uy, Uz
 end
 
-@time o = main_elastic_3D_3D_integration();
+@time o = threedeebeam();
 
 # postprocesser_beam(o...)
