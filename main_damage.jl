@@ -29,7 +29,7 @@ function main_damage()
     ############
     xStart = 0; yStart = 0
     xEnd = 1; yEnd = 1
-    xnEl = 50; ynEl = 50
+    xnEl = 100; ynEl = 100
 
 
     ###################
@@ -96,8 +96,8 @@ function main_damage()
     U_n_modes = 10
     D_n_modes = 10
 
-    n_loadsteps = 20
-    max_displacement = 0.05
+    n_loadsteps = 30
+    max_displacement = 0.05*2/3
 
     #######################
     # Material parameters #
@@ -147,7 +147,7 @@ function main_damage()
     ####################
     # Start simulation #
     ####################
-    for loadstep in 0:n_loadsteps
+    for loadstep in 0:0#n_loadsteps
         print_loadstep(loadstep,n_loadsteps)
         controlled_displacement = max_displacement*(loadstep/n_loadsteps)
         U_a[:,1] = sqrt(controlled_displacement) * U_dirichletmode # Since `dirichletmode` is squared

@@ -18,7 +18,7 @@ function vtkwriter(pvd,loadstep,Ux,aX,Uy,aY,Uz,aZ)
     Y = vec_mul_vec_mul_vec(ones(x),y,ones(z))
     Z = vec_mul_vec_mul_vec(ones(x),ones(y),z)
 
-    vtkfile = vtk_grid("./vtkfiles/step$(loadstep)",X,Y,Z)
+    vtkfile = vtk_grid(pvd.path[1:end-14]*"step$(loadstep)",X,Y,Z)
 
     # Displacement
     U, V, W = build_function(Ux, aX, Uy, aY, Uz, aZ)
@@ -50,7 +50,7 @@ function vtkwriter(pvd,loadstep,Ux,aX,Uy,aY)
     Y = vec_mul_vec_mul_vec(ones(x),y,[1.0])
     Z = vec_mul_vec_mul_vec(ones(x),ones(y),[0.0])
 
-    vtkfile = vtk_grid("./vtkfiles/step$(loadstep)",X,Y,Z)
+    vtkfile = vtk_grid(pvd.path[1:end-14]*"step$(loadstep)",X,Y,Z)
 
     # Displacement
     U, V = build_function(Ux, aX, Uy, aY)

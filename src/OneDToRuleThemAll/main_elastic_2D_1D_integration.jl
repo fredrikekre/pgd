@@ -25,7 +25,7 @@ function main_elastic_2D_1D_integration()
     ############
     xStart = 0; yStart = 0
     xEnd = 1.0; yEnd = 1.0
-    xnEl = 10; ynEl = 10
+    xnEl = 20; ynEl = 20
 
 
     ###################
@@ -65,10 +65,10 @@ function main_elastic_2D_1D_integration()
     #########################
     # Simulation parameters #
     #########################
-    n_modes = 10
+    n_modes = 5
     n_loadsteps = 1
     TOL = 1e-7
-    # max_displacement = 0.1*0.5/4
+    max_displacement = 0.5
 
 
     #######################
@@ -76,8 +76,8 @@ function main_elastic_2D_1D_integration()
     #######################
     xbc = [1:2;(nxdofs-1):nxdofs]
     ybc = [1:2;(nydofs-1):nydofs]
-    xbc = [1:2;]; #xbc = Int[1, 2, 3, nxdofs-2, nxdofs-1, nxdofs]
-    ybc = [1:2;]; #ybc = Int[1, 2, 3, nydofs-2, nydofs-1, nydofs]
+    # xbc = [1:2;]; #xbc = Int[1, 2, 3, nxdofs-2, nxdofs-1, nxdofs]
+    # ybc = [1:2;]; #ybc = Int[1, 2, 3, nydofs-2, nydofs-1, nydofs]
 
     # aXd = ones(nxdofs); aXd[xbc] = 0.0
     # aYd = ones(nydofs); aYd[ybc] = 0.0
@@ -86,42 +86,39 @@ function main_elastic_2D_1D_integration()
 
     # Dirichlet mode
     aXd = ones(nxdofs)
-    aXd[2:3:(end-1)] = 0.0
-    aXd[3:3:end] = 0.0
+    aXd[1:2:(end-1)] = 1.0
+    aXd[2:2:(end-0)] = 0.0
 
     aYd = ones(nydofs)
-    aYd[2:3:(end-1)] = 0.0
-    aYd[3:3:end] = 0.0
+    aYd[1:2:(end-1)] = reinterpret(Float64,Uy.mesh.x,(length(Uy.mesh.x),)) / yEnd
+    aYd[2:2:(end-0)] = 0.0
 
-    # aZd = ones(nzdofs)
-    # aZd[1:3] = 0.0; aZd[(end-2):end] = [1.0,0.0,0.0]
-    # aZd[1:3:end-2] = linspace(0,1,length(aZd[1:3:end-2]))
-
-    # push!(aX,aXd); push!(aY,aYd); push!(Es,E)
+    push!(aX,aXd); push!(aY,aYd)
 
     # Body force
-    b = Vec{2}((1.0, 1.0))
+    b = Vec{2}((0.0, 0.0))
 
     # ################
     # # Write output #
     # ################
-    pvd = paraview_collection("./vtkfiles/vtkoutfile")
+    pvd = paraview_collection("./results_main_elastic_2D_1D_integration/vtkfiles/vtkoutfile")
+
     # vtkwriter(pvd,0,Ux,aX,Uy,aY)
     # return vtk_save(pvd)
     ####################
     # Start simulation #
     ####################
     for loadstep in 1:n_loadsteps
-        # controlled_displacement = max_displacement*(loadstep/n_loadsteps)
-        # U_a[:,1] = sqrt(controlled_displacement) * U_dirichletmode # Since `dirichletmode` is squared
+        controlled_displacement = max_displacement*(loadstep/n_loadsteps)
+        aX[1] *= sqrt(controlled_displacement); aY[1] *= sqrt(controlled_displacement) 
 
         for modeItr = 2:(n_modes + 1)
             iterations = 0
 
             # Initial guess
-            aX0 = 0.1*ones(nxdofs); #aX0[xbc] = 0.0
+            aX0 = 0.1*ones(nxdofs); aX0[xbc] = 0.0
             push!(aX,aX0)
-            aY0 = 0.1*ones(nydofs); #aY0[ybc] = 0.0
+            aY0 = 0.1*ones(nydofs); aY0[ybc] = 0.0
             push!(aY,aY0)
 
             compsold = IterativeFunctionComponents(aX0,aY0)
@@ -166,4 +163,4 @@ end
 
 @time o = main_elastic_2D_1D_integration();
 
-# postprocesser_beam(o...)
+postprocesser_main_elastic_2D_1D_integration(o...)
