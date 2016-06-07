@@ -30,6 +30,7 @@ function main_elastic()
     xStart = 0; yStart = 0
     xEnd = 1; yEnd = 1
     xnEl = 100; ynEl = 100
+    # xnEl = 20; ynEl = 20
 
 
     ###################

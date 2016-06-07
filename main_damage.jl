@@ -29,7 +29,7 @@ function main_damage()
     ############
     xStart = 0; yStart = 0
     xEnd = 1; yEnd = 1
-    xnEl = 100; ynEl = 100
+    xnEl = 50; ynEl = 50
 
 
     ###################
@@ -93,11 +93,11 @@ function main_damage()
     #########################
     # Simulation parameters #
     #########################
-    U_n_modes = 10
-    D_n_modes = 10
+    U_n_modes = 3
+    D_n_modes = 3
 
-    n_loadsteps = 30
-    max_displacement = 0.05*2/3
+    n_loadsteps = 40
+    max_displacement = 0.035
 
     #######################
     # Material parameters #
@@ -115,8 +115,8 @@ function main_damage()
     Ψ = [zeros(Float64,length(JuAFEM.points(D.fev.quad_rule))) for i in 1:D.mesh.nEl]
     Ψ_new = copy(Ψ)
 
-    damagedElementsBelow = collect((xnEl*(div(ynEl,2)-1)+1):(xnEl*(div(ynEl,2)-1)+div(xnEl,2)))
-    damagedElementsAbove = collect((xnEl*div(ynEl,2)+1):(xnEl*div(ynEl,2)+div(xnEl,2)))
+    damagedElementsBelow = collect((xnEl*(div(ynEl,2)-1)+1):(xnEl*(div(ynEl,2)-1)+div(xnEl,3)))
+    damagedElementsAbove = collect((xnEl*div(ynEl,2)+1):(xnEl*div(ynEl,2)+div(xnEl,3)))
 
     Ψ_d = 0.01*100
     Ψ[damagedElementsBelow] = [Ψ_d*[0.0,0.0,1.0,1.0] for i in 1:length(damagedElementsBelow)]
@@ -147,18 +147,18 @@ function main_damage()
     ####################
     # Start simulation #
     ####################
-    for loadstep in 0:0#n_loadsteps
+    for loadstep in 0:n_loadsteps
         print_loadstep(loadstep,n_loadsteps)
         controlled_displacement = max_displacement*(loadstep/n_loadsteps)
         U_a[:,1] = sqrt(controlled_displacement) * U_dirichletmode # Since `dirichletmode` is squared
 
-        for j in 1:2 # Do some iterations
+        for j in 1:5 # Do some iterations
 
             # Displacement as function of damage
             U.modes = 1
             for modeItr = 2:(U_n_modes + 1)
                 print_modeitr(modeItr-1,U_n_modes,"displacement")
-                newMode, Ψ_new = UD_ModeSolver(U_a,U_a_old,U,U_bc,U_edof,
+                @time newMode, Ψ_new = UD_ModeSolver(U_a,U_a_old,U,U_bc,U_edof,
                                                D_a,D_a_old,D,D_bc,D_edof,
                                                    U_mp,b,modeItr)
 
@@ -176,11 +176,20 @@ function main_damage()
             D.modes = 1
             for modeItr = 2:(D_n_modes + 1)
                 print_modeitr(modeItr-1,D_n_modes,"damage")
-                newMode = DU_ModeSolver(D_a,D_a_old,D,D_bc,D_edof,
+                @time newMode = DU_ModeSolver(D_a,D_a_old,D,D_bc,D_edof,
                                             D_mp,Ψ,modeItr)
                 D_a[:,modeItr] = newMode
                 D.modes = modeItr
                 println("done!")
+                # vtkwriter(pvd,U_a,U,D_a,D,modeItr)
+                # dx = newMode[1:div(length(newMode),2)]
+                # dy = newMode[(div(length(newMode),2)+1):end]
+                # thismode = dx*dy.'
+                # println("Mode $modeItr has amplitude $(norm(thismode))")
+            end
+
+            if loadstep == 0
+                break
             end
 
             if loadstep > 0 # Since first loadstep is a 0-mode
@@ -191,7 +200,7 @@ function main_damage()
         end
 
         # Write to file
-        vtkwriter(pvd,U_a,U,D_a,D,Ψ,loadstep)
+        vtkwriter(pvd,U_a,U,D_a,D,loadstep)
         # if loadstep > 0 # Since first loadstep is a 0-mode
         #     copy!(U_a_old,U_a)
         #     # copy!(D_a_old,D_a)

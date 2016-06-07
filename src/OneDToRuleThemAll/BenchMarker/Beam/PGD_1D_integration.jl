@@ -1,29 +1,35 @@
 using JuAFEM
 using ContMechTensors
 
-include("src/meshgenerator.jl")
-include("src/PGDmodule.jl")
-include("src/elements.jl")
-include("src/hadamard.jl")
-include("src/material.jl")
-include("src/solvers.jl")
-include("src/utilities.jl")
-include("src/write_to_vtk.jl")
-include("src/postprocesser.jl")
+using TimerOutputs
+
+include("../../src/meshgenerator.jl")
+include("../../src/PGDmodule.jl")
+include("../../src/elements.jl")
+include("../../src/hadamard.jl")
+# include("../../src/material.jl")
+include("../../src/solvers.jl")
+include("../../src/utilities.jl")
+include("../../src/write_to_vtk.jl")
+include("../../src/postprocesser.jl")
 
 
 ################################
 # Main file for PGD elasticity #
 ################################
 
-function main_elastic_3D_1D_integration()
+function bench_beam_PGD_1D_integration(sidenel::Int, u_FEM, v_FEM, w_FEM)
+
+    errorsLUL = Float64[]
+
+    t_PGD_1D = 0.0
 
     ############
     # Geometry #
     ############
     xStart = 0; yStart = 0; zStart = 0
     xEnd = 1.0; yEnd = 0.1; zEnd = 0.1
-    xnEl = 40; ynEl = 4; znEl = 4
+    xnEl = 10*sidenel; ynEl = sidenel; znEl = sidenel
 
 
     ###################
@@ -67,7 +73,7 @@ function main_elastic_3D_1D_integration()
     #########################
     # Simulation parameters #
     #########################
-    n_modes = 60
+    n_modes = 20
     n_loadsteps = 1
     TOL = 1e-7
     # max_displacement = 0.1*0.5/4
@@ -138,7 +144,7 @@ function main_elastic_3D_1D_integration()
             compsold = IterativeFunctionComponents(aX0,aY0,aZ0)
 
             while true; iterations += 1
-
+                tic()
                 newXmode = mode_solver(Ux,aX,Uy,aY,Uz,aZ,E,b,xbc,Val{1}())
                 aX[end] = newXmode
 
@@ -147,22 +153,33 @@ function main_elastic_3D_1D_integration()
 
                 newZmode = mode_solver(Uz,aZ,Ux,aX,Uy,aY,E,b,zbc,Val{1}())
                 aZ[end] = newZmode
-
+                t_PGD_1D += toq();
                 # println("Done with iteration $(iterations) for mode $(modeItr).")
 
                 compsnew = IterativeFunctionComponents(newXmode,newYmode,newZmode)
                 xdiff,ydiff,zdiff = iteration_difference(compsnew,compsold)
-                # println("xdiff = $xdiff, ydiff = $ydiff, zdiff = $zdiff")
+                # println("xdiff = $(xdiff), ydiff = $(ydiff), zdiff = $(zdiff)")
                 compsold = compsnew
 
                 if (xdiff < TOL && ydiff < TOL && zdiff < TOL) || iterations > 100
                     println("Converged for mode $(modeItr) after $(iterations) iterations.")
-                    println("xdiff = $(xdiff), ydiff = $(ydiff), zdiff = $(zdiff)")
-                    vtkwriter(pvd,modeItr,Ux,aX,Uy,aY,Uz,aZ)
+                    # println("xdiff = $(xdiff), ydiff = $(ydiff), zdiff = $(zdiff)")
+                    # vtkwriter(pvd,modeItr,Ux,aX,Uy,aY,Uz,aZ)
                     break
                 end
 
             end
+            # # Check vs FEM
+            # u_PGD,v_PGD,w_PGD = build_function(Ux,aX,Uy,aY,Uz,aZ)
+            # l_uuPGD_dot_uuPGD = (u_PGD.*u_PGD + v_PGD.*v_PGD + w_PGD.*w_PGD).^(1/2)
+            # l_uuFEM_dot_uuFEM = (u_FEM.*u_FEM + v_FEM.*v_FEM + w_FEM.*w_FEM).^(1/2)
+
+            # E_FEM_PGD = sum((l_uuPGD_dot_uuPGD - l_uuFEM_dot_uuFEM).^2) / sum((l_uuFEM_dot_uuFEM).^2)
+            # println("Error with $modeItr modes is $E_FEM_PGD")
+            # push!(errorsLUL,E_FEM_PGD)
+            # if E_FEM_PGD < 1e-7
+                # break
+            # end
         end # of mode iterations
 
         # Write to file
@@ -174,10 +191,6 @@ function main_elastic_3D_1D_integration()
 
     end # of loadstepping
 
-    vtk_save(pvd)
-    return aX, aY, aZ, Ux, Uy, Uz
+    # vtk_save(pvd)
+    return (aX, aY, aZ, Ux, Uy, Uz), t_PGD_1D, errorsLUL
 end
-
-@time o = main_elastic_3D_1D_integration();
-
-postprocesser_main_elastic_3D_1D_integration(o...)

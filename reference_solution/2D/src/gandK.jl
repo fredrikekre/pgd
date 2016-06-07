@@ -7,6 +7,14 @@ function U_residual{T}(u::Vector{T},u_mesh,u_free,u_fe_values,mp,b::Vector)
     ndofs = maximum(u_mesh.edof)
     g = zeros(ndofs)
 
+    # # 20 x 20
+    # section = collect(7:14) + 6*20
+    # incl_ele = Int[]
+    # for i in 1:length(section)
+    #     append!(incl_ele,section + 20*(i-1))
+    # end
+
+    # 100 x 100
     section = collect(31:70) + 30*100
     incl_ele = Int[]
     for i in 1:length(section)
@@ -36,6 +44,14 @@ function U_jacobian{T}(u::Vector{T},u_mesh,u_free,u_fe_values,mp,b::Vector=zeros
     _K = JuAFEM.start_assemble()
     cache = ForwardDiffCache()
 
+    # # 20 x 20
+    # section = collect(7:14) + 6*20
+    # incl_ele = Int[]
+    # for i in 1:length(section)
+    #     append!(incl_ele,section + 20*(i-1))
+    # end
+
+    # 100 x 100
     section = collect(31:70) + 30*100
     incl_ele = Int[]
     for i in 1:length(section)

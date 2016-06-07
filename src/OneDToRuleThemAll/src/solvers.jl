@@ -120,6 +120,7 @@ function mode_solver{T}(U1::PGDComponent, a1::Vector{Vector{T}},
                                  U2,extract_eldofs(a2,m2),N2,dN2,
                                  U3,extract_eldofs(a3,m3),N3,dN3,
                                  E,f)
+
         assemble(m1,_K,Ke)
         fext[m1] += fe
     end

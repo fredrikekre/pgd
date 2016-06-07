@@ -1,29 +1,33 @@
 using JuAFEM
 using ContMechTensors
 
-include("src/meshgenerator.jl")
-include("src/PGDmodule.jl")
-include("src/elements.jl")
-include("src/hadamard.jl")
-include("src/material.jl")
-include("src/solvers.jl")
-include("src/utilities.jl")
-include("src/write_to_vtk.jl")
-include("src/postprocesser.jl")
+using TimerOutputs
+
+# include("../../src/meshgenerator.jl")
+# include("../../src/PGDmodule.jl")
+# include("../../src/elements.jl")
+# include("../../src/hadamard.jl")
+# # include("src/material.jl")
+# include("../../src/solvers.jl")
+# include("../../src/utilities.jl")
+# include("../../src/write_to_vtk.jl")
+# include("../../src/postprocesser.jl")
 
 
 ################################
 # Main file for PGD elasticity #
 ################################
 
-function main_elastic_3D_1D_integration()
+function bench_beam_PGD_3D_integration(sidenel::Int)
+
+    t_PGD_3D = 0.0
 
     ############
     # Geometry #
     ############
-    xStart = 0; yStart = 0; zStart = 0
+    xStart = 0.0; yStart = 0.0; zStart = 0.0
     xEnd = 1.0; yEnd = 0.1; zEnd = 0.1
-    xnEl = 40; ynEl = 4; znEl = 4
+    xnEl = 10*sidenel; ynEl = sidenel; znEl = sidenel
 
 
     ###################
@@ -67,7 +71,7 @@ function main_elastic_3D_1D_integration()
     #########################
     # Simulation parameters #
     #########################
-    n_modes = 60
+    n_modes = 10
     n_loadsteps = 1
     TOL = 1e-7
     # max_displacement = 0.1*0.5/4
@@ -138,27 +142,27 @@ function main_elastic_3D_1D_integration()
             compsold = IterativeFunctionComponents(aX0,aY0,aZ0)
 
             while true; iterations += 1
-
-                newXmode = mode_solver(Ux,aX,Uy,aY,Uz,aZ,E,b,xbc,Val{1}())
+                tic()
+                newXmode = mode_solver(Ux,aX,Uy,aY,Uz,aZ,E,b,xbc,Val{3}())
                 aX[end] = newXmode
 
-                newYmode = mode_solver(Uy,aY,Uz,aZ,Ux,aX,E,b,ybc,Val{1}())
+                newYmode = mode_solver(Uy,aY,Uz,aZ,Ux,aX,E,b,ybc,Val{3}())
                 aY[end] = newYmode
 
-                newZmode = mode_solver(Uz,aZ,Ux,aX,Uy,aY,E,b,zbc,Val{1}())
+                newZmode = mode_solver(Uz,aZ,Ux,aX,Uy,aY,E,b,zbc,Val{3}())
                 aZ[end] = newZmode
-
+                t_PGD_3D += toc();
                 # println("Done with iteration $(iterations) for mode $(modeItr).")
 
                 compsnew = IterativeFunctionComponents(newXmode,newYmode,newZmode)
                 xdiff,ydiff,zdiff = iteration_difference(compsnew,compsold)
-                # println("xdiff = $xdiff, ydiff = $ydiff, zdiff = $zdiff")
+                # println("xdiff = $(xdiff), ydiff = $(ydiff), zdiff = $(zdiff)")
                 compsold = compsnew
 
                 if (xdiff < TOL && ydiff < TOL && zdiff < TOL) || iterations > 100
                     println("Converged for mode $(modeItr) after $(iterations) iterations.")
                     println("xdiff = $(xdiff), ydiff = $(ydiff), zdiff = $(zdiff)")
-                    vtkwriter(pvd,modeItr,Ux,aX,Uy,aY,Uz,aZ)
+                    # vtkwriter(pvd,modeItr,Ux,aX,Uy,aY,Uz,aZ)
                     break
                 end
 
@@ -174,10 +178,6 @@ function main_elastic_3D_1D_integration()
 
     end # of loadstepping
 
-    vtk_save(pvd)
-    return aX, aY, aZ, Ux, Uy, Uz
+    # vtk_save(pvd)
+    return (aX, aY, aZ, Ux, Uy, Uz), t_PGD_3D
 end
-
-@time o = main_elastic_3D_1D_integration();
-
-postprocesser_main_elastic_3D_1D_integration(o...)

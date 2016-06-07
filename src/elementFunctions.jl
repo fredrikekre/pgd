@@ -228,7 +228,7 @@ function UD_intf{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,
             d += dot(Nx,D_ax[:,m]) * dot(Ny,D_ay[:,m])
         end
 
-        rf = 1e-6
+        rf = 1e-6*1000
         σ_degradation = (1.0-d)^2 + rf
 
         # Stress
@@ -248,7 +248,7 @@ function UD_intf{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,
         #############################
         if T == Float64 # Otherwise its GradientNumber...
             ε = εv_to_εt(ε)
-            σ =  2 * U_mp.mp.G * dev(ε) + U_mp.mp.K * trace(ε)* one(ε)
+            σ =  2 * U_mp.mp.G * dev(ε) + U_mp.mp.K * trace(ε) * one(ε)
             Ψ = 1/2 * σ ⊡ ε
             Ψe[q_point] = Ψ
         end

@@ -16,14 +16,14 @@ include("src/postprocesser.jl")
 # Main file for PGD elasticity #
 ################################
 
-function main_elastic_3D_1D_integration()
+function main_elastic_3D_3D_integration()
 
     ############
     # Geometry #
     ############
     xStart = 0; yStart = 0; zStart = 0
-    xEnd = 1.0; yEnd = 0.1; zEnd = 0.1
-    xnEl = 40; ynEl = 4; znEl = 4
+    xEnd = 1.0; yEnd = 1.0; zEnd = 1.0
+    xnEl = 10; ynEl = 10; znEl = 10
 
 
     ###################
@@ -67,7 +67,7 @@ function main_elastic_3D_1D_integration()
     #########################
     # Simulation parameters #
     #########################
-    n_modes = 60
+    n_modes = 5
     n_loadsteps = 1
     TOL = 1e-7
     # max_displacement = 0.1*0.5/4
@@ -85,8 +85,8 @@ function main_elastic_3D_1D_integration()
 
     # Beam
     xbc = Int[1:3;]
-    ybc = Int[]
-    zbc = Int[]
+    ybc = Int[1:3;]
+    zbc = Int[1:3;]
 
     # aXd = ones(nxdofs); aXd[xbc] = 0.0
     # aYd = ones(nydofs); aYd[ybc] = 0.0
@@ -110,7 +110,7 @@ function main_elastic_3D_1D_integration()
     # push!(aX,aXd); push!(aY,aYd); push!(aZ,aZd); push!(Es,E)
 
     # Body force
-    b = Vec{3}((0.0000001, 0.0000001, -1.0))
+    b = Vec{3}((1.0, 1.0, 1.0))
 
     # ################
     # # Write output #
@@ -129,30 +129,30 @@ function main_elastic_3D_1D_integration()
             iterations = 0
 
             # Initial guess
-            aX0 = 0.1*ones(nxdofs); #aX0[xbc] = 0.0
+            aX0 = 0.1*ones(nxdofs); aX0[xbc] = 0.0
             push!(aX,aX0)
-            aY0 = 0.1*ones(nydofs); #aY0[ybc] = 0.0
+            aY0 = 0.1*ones(nydofs); aY0[ybc] = 0.0
             push!(aY,aY0)
-            aZ0 = 0.1*ones(nzdofs); #aZ0[zbc] = 0.0
+            aZ0 = 0.1*ones(nzdofs); aZ0[zbc] = 0.0
             push!(aZ,aZ0)
             compsold = IterativeFunctionComponents(aX0,aY0,aZ0)
 
             while true; iterations += 1
 
-                newXmode = mode_solver(Ux,aX,Uy,aY,Uz,aZ,E,b,xbc,Val{1}())
+                newXmode = mode_solver(Ux,aX,Uy,aY,Uz,aZ,E,b,xbc,Val{3}())
+                return newXmode
                 aX[end] = newXmode
 
-                newYmode = mode_solver(Uy,aY,Uz,aZ,Ux,aX,E,b,ybc,Val{1}())
+                newYmode = mode_solver(Uy,aY,Uz,aZ,Ux,aX,E,b,ybc,Val{3}())
                 aY[end] = newYmode
 
-                newZmode = mode_solver(Uz,aZ,Ux,aX,Uy,aY,E,b,zbc,Val{1}())
+                newZmode = mode_solver(Uz,aZ,Ux,aX,Uy,aY,E,b,zbc,Val{3}())
                 aZ[end] = newZmode
-
                 # println("Done with iteration $(iterations) for mode $(modeItr).")
 
                 compsnew = IterativeFunctionComponents(newXmode,newYmode,newZmode)
                 xdiff,ydiff,zdiff = iteration_difference(compsnew,compsold)
-                # println("xdiff = $xdiff, ydiff = $ydiff, zdiff = $zdiff")
+                println("xdiff = $(xdiff), ydiff = $(ydiff), zdiff = $(zdiff)")
                 compsold = compsnew
 
                 if (xdiff < TOL && ydiff < TOL && zdiff < TOL) || iterations > 100
@@ -178,6 +178,6 @@ function main_elastic_3D_1D_integration()
     return aX, aY, aZ, Ux, Uy, Uz
 end
 
-@time o = main_elastic_3D_1D_integration();
+@time o = main_elastic_3D_3D_integration();
 
-postprocesser_main_elastic_3D_1D_integration(o...)
+# postprocesser_main_elastic_3D_3D_integration(o...)

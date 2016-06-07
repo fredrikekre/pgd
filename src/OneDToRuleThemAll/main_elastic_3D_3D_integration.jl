@@ -1,8 +1,6 @@
 using JuAFEM
 using ContMechTensors
 
-using TimerOutputs
-
 include("src/meshgenerator.jl")
 include("src/PGDmodule.jl")
 include("src/elements.jl")
@@ -24,8 +22,8 @@ function main_elastic_3D_3D_integration()
     # Geometry #
     ############
     xStart = 0; yStart = 0; zStart = 0
-    xEnd = 1.0; yEnd = 1.0; zEnd = 1.0
-    xnEl = 10; ynEl = 10; znEl = 10
+    xEnd = 1.0; yEnd = 0.1; zEnd = 0.1
+    xnEl = 20; ynEl = 2; znEl = 2
 
 
     ###################
@@ -69,7 +67,7 @@ function main_elastic_3D_3D_integration()
     #########################
     # Simulation parameters #
     #########################
-    n_modes = 20
+    n_modes = 10
     n_loadsteps = 1
     TOL = 1e-7
     # max_displacement = 0.1*0.5/4
@@ -84,6 +82,11 @@ function main_elastic_3D_3D_integration()
     xbc = [1:3;]; #xbc = Int[1, 2, 3, nxdofs-2, nxdofs-1, nxdofs]
     ybc = [1:3;]; #ybc = Int[1, 2, 3, nydofs-2, nydofs-1, nydofs]
     zbc = [1:3;]; #zbc = Int[]
+
+    # Beam
+    xbc = Int[1:3;]
+    ybc = Int[]
+    zbc = Int[]
 
     # aXd = ones(nxdofs); aXd[xbc] = 0.0
     # aYd = ones(nydofs); aYd[ybc] = 0.0
@@ -107,7 +110,7 @@ function main_elastic_3D_3D_integration()
     # push!(aX,aXd); push!(aY,aYd); push!(aZ,aZd); push!(Es,E)
 
     # Body force
-    b = Vec{3}((1.0, 1.0, 1.0))
+    b = Vec{3}((0.0000001, 0.0000001, -1.0))
 
     # ################
     # # Write output #

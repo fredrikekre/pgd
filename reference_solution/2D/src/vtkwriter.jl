@@ -76,6 +76,37 @@ function save_pgd_format(u)
 
     meshsize = (nxnodes-1, nynodes-1)
 
-    writedlm("../../../../FinalReport/DataPlots/raw_data/elasticshearinclusion/u_FEM_$(meshsize[1])_$(meshsize[2]).txt", uu)
-    writedlm("../../../../FinalReport/DataPlots/raw_data/elasticshearinclusion/v_FEM_$(meshsize[1])_$(meshsize[2]).txt", vv)
+    writedlm("../../../../FinalReport/DataPlots/raw_data/elastic_case2/u_FEM_$(meshsize[1])_$(meshsize[2]).txt", uu)
+    writedlm("../../../../FinalReport/DataPlots/raw_data/elastic_case2/v_FEM_$(meshsize[1])_$(meshsize[2]).txt", vv)
+end
+
+function save_pgd_format(u, d)
+    # Save to compare with PGD
+    nnodes = div(length(u),2)
+
+    nxnodes = Int(nnodes^(1/2))
+    nynodes = Int(nnodes^(1/2))
+
+    uu = u[1:2:end-1]
+    uu = reshape(uu,(nxnodes,nynodes))
+
+    vv = u[2:2:end]
+    vv = reshape(vv,(nxnodes,nynodes))
+
+    meshsize = (nxnodes-1, nynodes-1)
+
+    writedlm("../../../../FinalReport/DataPlots/raw_data/damage_case1/loadstep_30/u_FEM_$(meshsize[1])_$(meshsize[2]).txt", uu)
+    writedlm("../../../../FinalReport/DataPlots/raw_data/damage_case1/loadstep_30/v_FEM_$(meshsize[1])_$(meshsize[2]).txt", vv)
+
+    # Damage
+    nnodes = length(d)
+
+    nxnodes = Int(nnodes^(1/2))
+    nynodes = Int(nnodes^(1/2))
+
+    dd = reshape(d,(nxnodes,nynodes))
+
+    meshsize = (nxnodes-1, nynodes-1)
+
+    writedlm("../../../../FinalReport/DataPlots/raw_data/damage_case1/loadstep_30/d_FEM_$(meshsize[1])_$(meshsize[2]).txt", dd)
 end

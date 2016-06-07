@@ -8,6 +8,14 @@ function calc_globres_U{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,U_edof::Ma
     # Calculate global residual, g_glob
     g_glob = zeros(T,number_of_dofs(U_edof))
 
+    # # 20 x 20
+    # section = collect(7:14) + 6*20
+    # incl_ele = Int[]
+    # for i in 1:length(section)
+    #     append!(incl_ele,section + 20*(i-1))
+    # end
+
+    # 100 x 100
     section = collect(31:70) + 30*100
     incl_ele = Int[]
     for i in 1:length(section)
@@ -39,6 +47,14 @@ function calc_globK_U{T}(U_an::Vector{T},U_a::Matrix,U::PGDFunction,U_edof::Matr
     _K = JuAFEM.start_assemble()
     cache = ForwardDiffCache()
 
+    # # 20 x 20
+    # section = collect(7:14) + 6*20
+    # incl_ele = Int[]
+    # for i in 1:length(section)
+    #     append!(incl_ele,section + 20*(i-1))
+    # end
+
+    # 100 x 100
     section = collect(31:70) + 30*100
     incl_ele = Int[]
     for i in 1:length(section)

@@ -35,20 +35,21 @@ function main_damage()
 
     Ψ = [zeros(length(JuAFEM.points(quad_rule))) for i in 1:u_mesh.nEl]
 
-    damagedElementsBelow = collect((nElx*div(nEly,2)+1):(nElx*(div(nEly,2))+div(nElx,2)))
-    damagedElementsAbove = collect((nElx*(div(nEly,2)+1)+1):(nElx*(div(nEly,2)+1)+div(nElx,2)))
+    damagedElementsBelow = collect((nElx*(div(nEly,2)-1)+1):(nElx*(div(nEly,2)-1)+div(nElx,3)))
+    damagedElementsAbove = collect((nElx*div(nEly,2)+1):(nElx*div(nEly,2)+div(nElx,3)))
 
     Ψ_d = 0.01*100
     Ψ[damagedElementsBelow] = [Ψ_d*[0.0,0.0,1.0,1.0] for i in 1:length(damagedElementsBelow)]
     Ψ[damagedElementsAbove] = [Ψ_d*[1.0,1.0,0.0,0.0] for i in 1:length(damagedElementsAbove)]
+    Ψ_new = copy(Ψ)
 
     gc = 0.01/100
     l = 0.1
     d_mp = PhaseFieldDamage(gc,l)
 
     # Boundary conditions
-    u_prescr = u_mesh.b3[1,:][:]
-    u_fixed = [u_mesh.b1[1,:][:]; u_mesh.b1[2,:][:]; u_mesh.b3[2,:][:]]
+    u_prescr = u_mesh.b3[2,:][:]
+    u_fixed = [u_mesh.b1[1,:][:]; u_mesh.b1[2,:][:]; u_mesh.b3[1,:][:]]
     u_free = setdiff(1:u_mesh.nDofs,[u_prescr; u_fixed])
 
     # d_prescr = [collect((101*49 + 1):(101*49 + 41));
@@ -61,10 +62,12 @@ function main_damage()
     d_free = setdiff(1:d_mesh.nDofs,[d_prescr; d_fixed])
 
     n_loadsteps = 40
-    u_prescr_max = 0.1
+    u_prescr_max = 0.035
 
     u = zeros(u_mesh.nDofs)
     d = zeros(d_mesh.nDofs)
+
+    TOL = 1e-5
 
     for loadstep in 0:n_loadsteps
         print_loadstep(loadstep,n_loadsteps)
@@ -74,10 +77,15 @@ function main_damage()
         u[u_prescr] = u_prescribed_value
         d[d_prescr] = d_prescribed_value
 
-        for j in 1:3 # Do some iterations
+        normΔu = 1
+        normΔd = 1
+        for j in 1:50 # Do some iterations
             # Solve for displacements
-            Δu, Ψ_new = UD_solver(u,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,u_mp,b)
-            u[u_free] += Δu
+            if normΔu > TOL
+                Δu, Ψ_new = UD_solver(u,u_mesh,u_free,u_fe_values,d,d_mesh,d_fe_values,u_mp,b)
+                u[u_free] += Δu
+                normΔu = norm(Δu)
+            end
 
             # Calculate free energy
             for ele in 1:length(Ψ)
@@ -85,9 +93,17 @@ function main_damage()
             end
 
             # Solve for damage field
-            Δd = DU_solver(d,d_mesh,d_free,d_fe_values,d_mp,Ψ)
-            d[d_free] += Δd
+            if normΔd > TOL
+                Δd = DU_solver(d,d_mesh,d_free,d_fe_values,d_mp,Ψ)
+                d[d_free] += Δd
+                normΔd = norm(Δd)
+            end
 
+            println("Iteration $j : norm(Δu) = $(normΔu), norm(Δd) = $(normΔd)")
+            if normΔu < TOL && normΔd < TOL
+                println("Step $loadstep converged after $j iterations.")
+                break
+            end
         end
 
         # if loadstep == 89
@@ -99,6 +115,7 @@ function main_damage()
         vtkwriter(pvd,loadstep,u_mesh,u,d)
     end
     vtk_save(pvd)
+    # save_pgd_format(u,d)
     return u, d, Ψ
 end
 

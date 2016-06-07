@@ -51,20 +51,20 @@ function vtkwriter(pvd,U_a,U,step)
 
     meshsize = (size(u,1)-1, size(u,2)-1)
 
-    writedlm("../../FinalReport/DataPlots/raw_data/elasticshearinclusion/u_PGD_$(nModes(U))modes_$(meshsize[1])_$(meshsize[2]).txt", u)
-    writedlm("../../FinalReport/DataPlots/raw_data/elasticshearinclusion/v_PGD_$(nModes(U))modes_$(meshsize[1])_$(meshsize[2]).txt", v)
+    writedlm("../../FinalReport/DataPlots/raw_data/elastic_case2/u_PGD_$(nModes(U))modes_$(meshsize[1])_$(meshsize[2]).txt", u)
+    writedlm("../../FinalReport/DataPlots/raw_data/elastic_case2/v_PGD_$(nModes(U))modes_$(meshsize[1])_$(meshsize[2]).txt", v)
 
     # Save modes
-    writedlm("../../FinalReport/DataPlots/raw_data/elasticshearinclusion/Ux_$(meshsize[1])_$(meshsize[2]).txt",Ux)
-    writedlm("../../FinalReport/DataPlots/raw_data/elasticshearinclusion/Vx_$(meshsize[1])_$(meshsize[2]).txt",Vx)
-    writedlm("../../FinalReport/DataPlots/raw_data/elasticshearinclusion/Uy_$(meshsize[1])_$(meshsize[2]).txt",Uy)
-    writedlm("../../FinalReport/DataPlots/raw_data/elasticshearinclusion/Vy_$(meshsize[1])_$(meshsize[2]).txt",Vy)
+    writedlm("../../FinalReport/DataPlots/raw_data/elastic_case2/Ux_$(meshsize[1])_$(meshsize[2]).txt",Ux)
+    writedlm("../../FinalReport/DataPlots/raw_data/elastic_case2/Vx_$(meshsize[1])_$(meshsize[2]).txt",Vx)
+    writedlm("../../FinalReport/DataPlots/raw_data/elastic_case2/Uy_$(meshsize[1])_$(meshsize[2]).txt",Uy)
+    writedlm("../../FinalReport/DataPlots/raw_data/elastic_case2/Vy_$(meshsize[1])_$(meshsize[2]).txt",Vy)
 end
 
 ###############################
 # For displacement and damage #
 ###############################
-function vtkwriter(pvd,U_a,U,D_a,D,Ψ,step)
+function vtkwriter(pvd,U_a,U,D_a,D,step)
 
     ###############
     # Set up grid #
@@ -90,11 +90,11 @@ function vtkwriter(pvd,U_a,U,D_a,D,Ψ,step)
     Uy_dof = (U.components[1].mesh.nDofs+1):2:(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs-1)
     Vy_dof = (U.components[1].mesh.nDofs+2):2:(U.components[1].mesh.nDofs+U.components[2].mesh.nDofs)
 
-    Ux = U_a[Ux_dof,:]
-    Vx = U_a[Vx_dof,:]
+    Ux = U_a[Ux_dof,1:nModes(U)]
+    Vx = U_a[Vx_dof,1:nModes(U)]
 
-    Uy = U_a[Uy_dof,:]
-    Vy = U_a[Vy_dof,:]
+    Uy = U_a[Uy_dof,1:nModes(U)]
+    Vy = U_a[Vy_dof,1:nModes(U)]
 
     u = Uy*Ux'
     v = Vy*Vx'
@@ -104,16 +104,6 @@ function vtkwriter(pvd,U_a,U,D_a,D,Ψ,step)
     vtkdisp[2,:,:,1] = v
     vtk_point_data(vtkfile, vtkdisp, "displacement")
 
-    # ##########
-    # # Energy #
-    # ##########
-    # Ψ_plot = zeros(length(Ψ))
-    # for i in 1:length(Ψ)
-    #     Ψ_plot[i] = mean(Ψ[i])
-    # end
-    # println(size(Ψ_plot))
-    # println(length(Ψ_plot))
-    # vtk_cell_data(vtkfile, Ψ_plot, "energy")
 
     ##########
     # Damage #
@@ -123,9 +113,8 @@ function vtkwriter(pvd,U_a,U,D_a,D,Ψ,step)
     Dx_dof = 1:(D.components[1].mesh.nDofs)
     Dy_dof = (D.components[1].mesh.nDofs+1):(D.components[1].mesh.nDofs+D.components[2].mesh.nDofs)
 
-    Dx = D_a[Dx_dof,:]
-
-    Dy = D_a[Dy_dof,:]
+    Dx = D_a[Dx_dof,1:nModes(D)]
+    Dy = D_a[Dy_dof,1:nModes(D)]
 
     d = Dy*Dx'
 
@@ -136,5 +125,25 @@ function vtkwriter(pvd,U_a,U,D_a,D,Ψ,step)
 
     # Save to collection
     collection_add_timestep(pvd,vtkfile,float(step))
+
+    # Save to compare with FEM
+    u = u.'
+    v = v.'
+    d = d.'
+
+    meshsize = (size(u,1)-1, size(u,2)-1)
+
+    writedlm("../../FinalReport/DataPlots/raw_data/damage_case1/u_PGD_$(nModes(U))modes_$(meshsize[1])_$(meshsize[2]).txt", u)
+    writedlm("../../FinalReport/DataPlots/raw_data/damage_case1/v_PGD_$(nModes(U))modes_$(meshsize[1])_$(meshsize[2]).txt", v)
+    writedlm("../../FinalReport/DataPlots/raw_data/damage_case1/d_PGD_$(nModes(D))modes_$(meshsize[1])_$(meshsize[2]).txt", d)
+
+    # Save modes
+    writedlm("../../FinalReport/DataPlots/raw_data/damage_case1/Ux_$(meshsize[1])_$(meshsize[2]).txt",Ux)
+    writedlm("../../FinalReport/DataPlots/raw_data/damage_case1/Vx_$(meshsize[1])_$(meshsize[2]).txt",Vx)
+    writedlm("../../FinalReport/DataPlots/raw_data/damage_case1/Uy_$(meshsize[1])_$(meshsize[2]).txt",Uy)
+    writedlm("../../FinalReport/DataPlots/raw_data/damage_case1/Vy_$(meshsize[1])_$(meshsize[2]).txt",Vy)
+
+    writedlm("../../FinalReport/DataPlots/raw_data/damage_case1/Dx_$(meshsize[1])_$(meshsize[2]).txt",Dx)
+    writedlm("../../FinalReport/DataPlots/raw_data/damage_case1/Dy_$(meshsize[1])_$(meshsize[2]).txt",Dy)
 
 end

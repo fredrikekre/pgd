@@ -111,6 +111,7 @@ function iteration_difference(compsnew::IterativeFunctionComponents{3}, compsold
     return xdiff, ydiff, zdiff
 end
 
+
 function iteration_difference(compsnew::IterativeFunctionComponents{2}, compsold::IterativeFunctionComponents{2})
     xdiff = norm(compsnew.U[1] - compsold.U[1])/norm(compsold.U[1])
     ydiff = norm(compsnew.U[2] - compsold.U[2])/norm(compsold.U[2])
