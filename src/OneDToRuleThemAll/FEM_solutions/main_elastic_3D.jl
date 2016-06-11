@@ -18,10 +18,10 @@ function main_elastic_3D()
     xStart = 0.0; yStart = 0.0; zStart = 0.0
     xs = Tensor{1,3}((xStart, yStart, zStart))
 
-    xEnd = 1.0; yEnd = 0.1; zEnd = 0.1
+    xEnd = 1.0; yEnd = 1.0; zEnd = 1.0
     xe = Tensor{1,3}((xEnd, yEnd, zEnd))
 
-    xnEl = 40; ynEl = 4; znEl = 4
+    xnEl = 10; ynEl = 10; znEl = 10
     nel = [xnEl, ynEl, znEl]
 
     ########
@@ -32,12 +32,12 @@ function main_elastic_3D()
     #######################
     # Boundary conditions #
     #######################
-    u_prescr = Int[]
-    u_fixed = [mesh.side_dofs[5][1]; mesh.side_dofs[5][2]; mesh.side_dofs[5][3]]
+    u_prescr = Int[mesh.side_dofs[6][1]; mesh.side_dofs[6][2]]
+    u_fixed = [mesh.side_dofs[1][1]; mesh.side_dofs[1][2]; mesh.side_dofs[1][3]; mesh.side_dofs[6][3]]
     u_free = setdiff(1:number_of_dofs(mesh),[u_prescr; u_fixed])
 
     # Load
-    b = Vec{3}((0.0, 0.0, -1.0))
+    b = Vec{3}((0.0001, 0.0001, 0.0001))
 
     ###################
     # Function spaces #
@@ -62,7 +62,7 @@ function main_elastic_3D()
     for loadstep in 1:n_loadsteps
 
         # Prescribed conditions
-        u_controlled = 0.1
+        u_controlled = 0.5
         u[u_prescr] = u_controlled
 
         Δu = u_solver(u,u_fe_values,mesh,u_free,EE,b)

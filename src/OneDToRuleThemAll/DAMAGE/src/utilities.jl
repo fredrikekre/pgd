@@ -16,9 +16,9 @@ function build_u_function{T}(Ux::PGDComponent, u_ax::Vector{Vector{T}},
     Vzdofs = 2:3:(Uz.mesh.nDofs-1)
     Wzdofs = 3:3:(Uz.mesh.nDofs-0)
 
-    lax = div(length(u_ax[1]),3)
-    lay = div(length(u_ay[1]),3)
-    laz = div(length(u_az[1]),3)
+    lax = div(Ux.mesh.nDofs,3)
+    lay = div(Uy.mesh.nDofs,3)
+    laz = div(Uz.mesh.nDofs,3)
 
     U = zeros(lax,lay,laz)
     V = zeros(lax,lay,laz)
@@ -43,9 +43,9 @@ function build_d_function{T}(Dx::PGDComponent, d_ax::Vector{Vector{T}},
 
     length(d_ax) == length(d_ay) == length(d_az) || throw(ArgumentError("Noob."))
 
-    lax = length(d_ax[1])
-    lay = length(d_ay[1])
-    laz = length(d_az[1])
+    lax = Dx.mesh.nDofs
+    lay = Dy.mesh.nDofs
+    laz = Dz.mesh.nDofs
 
     D = zeros(lax,lay,laz)
 

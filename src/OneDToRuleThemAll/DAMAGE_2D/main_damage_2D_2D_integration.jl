@@ -19,37 +19,34 @@ include("src/postprocesser.jl")
 # Main file for PGD elasticity #
 ################################
 
-function main_elastic_3D_3D_integration()
+function main_damage_2D_2D_integration()
 
     ############
     # Geometry #
     ############
-    xStart = 0; yStart = 0; zStart = 0
-    xEnd = 1.0; yEnd = 1.0; zEnd = 1.0
-    xnEl = 20; ynEl = 20; znEl = 20
+    xStart = 0; yStart = 0
+    xEnd = 1.0; yEnd = 1.0
+    xnEl = 50; ynEl = 50
 
 
     ###################
     # Displacement, U #
     ###################
     # Mesh
-    u_xnElNodes = 2; u_ynElNodes = 2; u_znElNodes = 2
-    u_xnNodeDofs = 3; u_ynNodeDofs = 3; u_znNodeDofs = 3
+    u_xnElNodes = 2; u_ynElNodes = 2
+    u_xnNodeDofs = 2; u_ynNodeDofs = 2
 
     u_xmesh = create_mesh1D(xStart,xEnd,xnEl,u_xnElNodes,u_xnNodeDofs)
     u_ymesh = create_mesh1D(yStart,yEnd,ynEl,u_ynElNodes,u_ynNodeDofs)
-    u_zmesh = create_mesh1D(zStart,zEnd,znEl,u_znElNodes,u_znNodeDofs)
 
     # Set up the components
     u_function_space = Lagrange{1,RefCube,1}()
     u_q_rule = QuadratureRule(Dim{1},RefCube(),2)
     u_fevx = FEValues(Float64,u_q_rule,u_function_space)
     u_fevy = FEValues(Float64,u_q_rule,u_function_space)
-    u_fevz = FEValues(Float64,u_q_rule,u_function_space)
 
-    Ux = PGDComponent(u_xmesh,u_fevx,1,3)
-    Uy = PGDComponent(u_ymesh,u_fevy,2,3)
-    Uz = PGDComponent(u_zmesh,u_fevz,3,3)
+    Ux = PGDComponent(u_xmesh,u_fevx,1,2)
+    Uy = PGDComponent(u_ymesh,u_fevy,2,2)
 
     u_nxdofs = maximum(u_xmesh.edof)
     u_ax = Vector{Float64}[]
@@ -57,30 +54,25 @@ function main_elastic_3D_3D_integration()
     u_nydofs = maximum(u_ymesh.edof)
     u_ay = Vector{Float64}[]
 
-    u_nzdofs = maximum(u_zmesh.edof)
-    u_az = Vector{Float64}[]
 
     #############
     # Damage, D #
     #############
     # Mesh
-    d_xnElNodes = 2; d_ynElNodes = 2; d_znElNodes = 2
-    d_xnNodeDofs = 1; d_ynNodeDofs = 1; d_znNodeDofs = 1
+    d_xnElNodes = 2; d_ynElNodes = 2
+    d_xnNodeDofs = 1; d_ynNodeDofs = 1
 
     d_xmesh = create_mesh1D(xStart,xEnd,xnEl,d_xnElNodes,d_xnNodeDofs)
     d_ymesh = create_mesh1D(yStart,yEnd,ynEl,d_ynElNodes,d_ynNodeDofs)
-    d_zmesh = create_mesh1D(zStart,zEnd,znEl,d_znElNodes,d_znNodeDofs)
 
     # Set up the components
     d_function_space = Lagrange{1,RefCube,1}()
     d_q_rule = QuadratureRule(Dim{1},RefCube(),2)
     d_fevx = FEValues(Float64,d_q_rule,d_function_space)
     d_fevy = FEValues(Float64,d_q_rule,d_function_space)
-    d_fevz = FEValues(Float64,d_q_rule,d_function_space)
 
-    Dx = PGDComponent(d_xmesh,d_fevx,1,3)
-    Dy = PGDComponent(d_ymesh,d_fevy,2,3)
-    Dz = PGDComponent(d_zmesh,d_fevz,3,3)
+    Dx = PGDComponent(d_xmesh,d_fevx,1,2)
+    Dy = PGDComponent(d_ymesh,d_fevy,2,2)
 
     d_nxdofs = maximum(d_xmesh.edof)
     d_ax = Vector{Float64}[]
@@ -88,35 +80,26 @@ function main_elastic_3D_3D_integration()
     d_nydofs = maximum(d_ymesh.edof)
     d_ay = Vector{Float64}[]
 
-    d_nzdofs = maximum(d_zmesh.edof)
-    d_az = Vector{Float64}[]
 
     ###################
     # Global FEValues #
     ###################
-    global_function_space = Lagrange{3,RefCube,1}()
-    global_q_rule = QuadratureRule(Dim{3},RefCube(),2)
+    global_function_space = Lagrange{2,RefCube,1}()
+    global_q_rule = QuadratureRule(Dim{2},RefCube(),2)
     global_u_fe_values = FEValues(Float64,global_q_rule,global_function_space)
     global_d_fe_values = FEValues(Float64,global_q_rule,global_function_space)
 
     ##########
     # Energy #
     ##########
-    n_global_els = u_xmesh.nEl*u_ymesh.nEl*u_zmesh.nEl
+    n_global_els = u_xmesh.nEl*u_ymesh.nEl
     Ψ = [zeros(Float64,length(points(global_q_rule))) for i in 1:n_global_els]
     Ψ_ref = 0.01*100
-    # # 10x10x10
-    # for el in 5:10:95
-    #     for elx in 0:5
-    #         Ψ[el + 100*elx] = Ψ_ref * ones(length(Ψ[el]))
-    #     end
-    # end
-    # 20x20x20
-    for el in 10:20:(20*20)
-    println(el)
-        for elx in 0:9
-            Ψ[el + elx*20*20] = Ψ_ref * ones(length(Ψ[el]))
-        end
+
+    # 50x50
+    for el in 25:50:(25 + 50*16)
+        Ψ[el] = Ψ_ref * [0.0, 1.0, 0.0, 1.0]
+        Ψ[el+1] = Ψ_ref * [1.0, 0.0, 1.0, 0.0]
     end
     Ψ_new = copy(Ψ)
 
@@ -124,7 +107,7 @@ function main_elastic_3D_3D_integration()
     # Material #
     ############
     Emod = 1; ν = 0.3
-    E = get_E_tensor(Emod, ν, 3)
+    E = get_E_tensor(Emod, ν, 2)
 
     l = 0.1; Gc = 0.01/100
     dmp = damage_params(l,Gc)
@@ -132,11 +115,11 @@ function main_elastic_3D_3D_integration()
     #########################
     # Simulation parameters #
     #########################
-    u_n_modes = 1
-    d_n_modes = 1
-    n_loadsteps = 10
+    u_n_modes = 5
+    d_n_modes = 5
+    n_loadsteps = 40
     TOL = 1e-7
-    max_displacement = 0.01
+    max_displacement = 0.035
 
 
     #######################
@@ -156,20 +139,17 @@ function main_elastic_3D_3D_integration()
     # Pulling up
     u_ax_Dirichlet = zeros(u_nxdofs)
     u_ay_Dirichlet = zeros(u_nydofs)
-    u_az_Dirichlet = zeros(u_nzdofs)
-    u_ax_Dirichlet[3:3:(end-0)] = 1.0
-    u_ay_Dirichlet[3:3:(end-0)] = 1.0
-    u_az_Dirichlet[3:3:(end-0)] = reinterpret(Float64,Uz.mesh.x,(length(Uz.mesh.x),))
+    u_ax_Dirichlet[2:2:(end-0)] = 1.0
+    u_ay_Dirichlet[2:2:(end-0)] = reinterpret(Float64,Uy.mesh.x,(length(Uy.mesh.x),))
 
     # Homogeneous Dirichlet for u
     u_xbc = Int[]
-    u_ybc = Int[]
-    u_zbc = [1:3;(u_nzdofs-2):u_nzdofs]
+    u_ybc = Int[1:2; (u_nydofs-1):u_nydofs]
 
     # Body force
-    b = Vec{3,Float64,3}((0.0001, 0.0001, 0.0001))
+    b = Vec{2,Float64,3}((0.00001, 0.00001))
 
-    d_xbc = Int[]; d_ybc = Int[]; d_zbc = Int[]
+    d_xbc = Int[]; d_ybc = Int[]
 
     ######################
     # Set up old vectors #
@@ -178,30 +158,25 @@ function main_elastic_3D_3D_integration()
     u_ax_old = [u_ax0 for i in 1:(u_n_modes+1)]
     u_ay0 = 0.1*ones(u_nydofs); u_ay0[u_ybc] = 0.0
     u_ay_old = [u_ay0 for i in 1:(u_n_modes+1)]
-    u_az0 = 0.1*ones(u_nzdofs); u_az0[u_zbc] = 0.0
-    u_az_old = [u_az0 for i in 1:(u_n_modes+1)]
 
     d_ax_old = [0.1*ones(d_nxdofs) for i in 1:d_n_modes]
     d_ay_old = [0.1*ones(d_nydofs) for i in 1:d_n_modes]
-    d_az_old = [0.1*ones(d_nzdofs) for i in 1:d_n_modes]
 
     ###########################################################
     # Shape functions (Setting them up here once and for all) #
     ###########################################################
-    UN, global_u_fe_values = get_u_N_3D(Ux, Uy, Uz, global_u_fe_values)
-    DN, global_d_fe_values = get_d_N_3D(Dx, Dy, Dz, global_d_fe_values)
+    UN, global_u_fe_values = get_u_N_2D(Ux, Uy, global_u_fe_values)
+    DN, global_d_fe_values = get_d_N_2D(Dx, Dy, global_d_fe_values)
 
     # ################
     # # Write output #
     # ################
     pvd = paraview_collection("./vtkfiles/vtkoutfile")
-    # u_ax = Vector{Float64}[]; push!(u_ax,u_ax_Dirichlet*(0.5)^(1/3))
-    # u_ay = Vector{Float64}[]; push!(u_ay,u_ay_Dirichlet*(0.5)^(1/3))
-    # u_az = Vector{Float64}[]; push!(u_az,u_az_Dirichlet*(0.5)^(1/3))
+    # u_ax = Vector{Float64}[]; push!(u_ax,u_ax_Dirichlet*(0.5)^(1/2))
+    # u_ay = Vector{Float64}[]; push!(u_ay,u_ay_Dirichlet*(0.5)^(1/2))
     # d_ax = Vector{Float64}[]
     # d_ay = Vector{Float64}[]
-    # d_az = Vector{Float64}[]
-    # vtkwriter(pvd,0,Ux,u_ax,Uy,u_ay,Uz,u_az,Dx,d_ax,Dy,d_ay,Dz,d_az)
+    # vtkwriter(pvd,0,Ux,u_ax,Uy,u_ay,Dx,d_ax,Dy,d_ay)
     # return vtk_save(pvd)
 
     ####################
@@ -212,68 +187,58 @@ function main_elastic_3D_3D_integration()
         println("##########################")
         controlled_displacement = max_displacement*(loadstep/n_loadsteps)
 
-        # Reset solution vectors
-        u_ax = Vector{Float64}[]; push!(u_ax,u_ax_Dirichlet*(controlled_displacement)^(1/3))
-        u_ay = Vector{Float64}[]; push!(u_ay,u_ay_Dirichlet*(controlled_displacement)^(1/3))
-        u_az = Vector{Float64}[]; push!(u_az,u_az_Dirichlet*(controlled_displacement)^(1/3))
-        d_ax = Vector{Float64}[]
-        d_ay = Vector{Float64}[]
-        d_az = Vector{Float64}[]
-
-        for j in 1:1 # Staggered iterations
+        for j in 1:3 # Staggered iterations
 
             ########################
             # Solving displacement #
             ########################
+            # Reset solution vectors
+            u_ax = Vector{Float64}[]; push!(u_ax,u_ax_Dirichlet*(controlled_displacement)^(1/2))
+            u_ay = Vector{Float64}[]; push!(u_ay,u_ay_Dirichlet*(controlled_displacement)^(1/2))
+
             for modeItr = 2:(u_n_modes + 1)
                 iterations = 0
 
                 # Initial guess
                 push!(u_ax,u_ax_old[modeItr])
                 push!(u_ay,u_ay_old[modeItr])
-                push!(u_az,u_az_old[modeItr])
-                u_compsold = IterativeFunctionComponents(u_ax_old[modeItr],u_ay_old[modeItr],u_az_old[modeItr])
+                u_compsold = IterativeFunctionComponents(u_ax_old[modeItr],u_ay_old[modeItr])
 
                 while true; iterations += 1
 
-                    u_ax_new, Ψ_new = ud_x_mode_solver(Ux,u_ax,Uy,u_ay,Uz,u_az,UN,global_u_fe_values,
+                    u_ax_new, Ψ_new = ud_x_mode_solver(Ux,u_ax,Uy,u_ay,UN,global_u_fe_values,
                                                        E,b,u_xbc,
-                                                       Dx,d_ax,Dy,d_ay,Dz,d_az,DN,
+                                                       Dx,d_ax,Dy,d_ay,DN,
                                                        Ψ_new)
                     u_ax[end] = u_ax_new*0.9
 
-                    u_ay_new, Ψ_new = ud_y_mode_solver(Ux,u_ax,Uy,u_ay,Uz,u_az,UN,global_u_fe_values,
+                    u_ay_new, Ψ_new = ud_y_mode_solver(Ux,u_ax,Uy,u_ay,UN,global_u_fe_values,
                                                        E,b,u_ybc,
-                                                       Dx,d_ax,Dy,d_ay,Dz,d_az,DN,
+                                                       Dx,d_ax,Dy,d_ay,DN,
                                                        Ψ_new)
                     u_ay[end] = u_ay_new*0.9
 
-                    u_az_new, Ψ_new = ud_z_mode_solver(Ux,u_ax,Uy,u_ay,Uz,u_az,UN,global_u_fe_values,
-                                                       E,b,u_zbc,
-                                                       Dx,d_ax,Dy,d_ay,Dz,d_az,DN,
-                                                       Ψ_new)
-                    u_az[end] = u_az_new*0.9
 
                     # println("Done with iteration $(iterations) for mode $(modeItr).")
 
-                    u_compsnew = IterativeFunctionComponents(u_ax_new,u_ay_new,u_az_new)
-                    u_xdiff, u_ydiff, u_zdiff = iteration_difference(u_compsnew,u_compsold)
-                    println("u_xdiff = $(u_xdiff), u_ydiff = $(u_ydiff), u_zdiff = $(u_zdiff)")
+                    u_compsnew = IterativeFunctionComponents(u_ax_new,u_ay_new)
+                    u_xdiff, u_ydiff = iteration_difference(u_compsnew,u_compsold)
+                    # println("u_xdiff = $(u_xdiff), u_ydiff = $(u_ydiff)")
                     u_compsold = u_compsnew
 
-                    if (u_xdiff < TOL && u_ydiff < TOL && u_zdiff < TOL) || iterations > 100
+                    if (u_xdiff < TOL && u_ydiff < TOL) || iterations > 100
                         println("Converged for u mode $(modeItr) after $(iterations) iterations.")
-                        println("u_xdiff = $(u_xdiff), u_ydiff = $(u_ydiff), u_zdiff = $(u_zdiff)")
-                        # vtkwriter(pvd,modeItr,Ux,u_ax,Uy,u_ay,Uz,u_az)
+                        println("u_xdiff = $(u_xdiff), u_ydiff = $(u_ydiff)")
+                        # vtkwriter(pvd,modeItr,Ux,u_ax,Uy,u_ay)
                         break
                     end
 
                 end
+
             end # of mode iterations
             if loadstep != 0
                 u_ax_old = copy(u_ax)
                 u_ay_old = copy(u_ay)
-                u_az_old = copy(u_az)
             end
 
             ########################
@@ -286,36 +251,36 @@ function main_elastic_3D_3D_integration()
             ##################
             # Solving damage #
             ##################
+            # Reset solution vectors
+            d_ax = Vector{Float64}[]
+            d_ay = Vector{Float64}[]
             for modeItr = 1:d_n_modes
                 iterations = 0
 
                 # Initial guess
                 push!(d_ax,d_ax_old[modeItr])
                 push!(d_ay,d_ay_old[modeItr])
-                push!(d_az,d_az_old[modeItr])
-                d_compsold = IterativeFunctionComponents(d_ax_old[modeItr],d_ay_old[modeItr],d_az_old[modeItr])
+                d_compsold = IterativeFunctionComponents(d_ax_old[modeItr],d_ay_old[modeItr])
 
                 while true; iterations += 1
 
-                    d_ax_new = du_x_mode_solver(Dx,d_ax,Dy,d_ay,Dz,d_az,DN,global_d_fe_values,dmp,d_xbc,Ψ)
+                    d_ax_new = du_x_mode_solver(Dx,d_ax,Dy,d_ay,DN,global_d_fe_values,dmp,d_xbc,Ψ)
                     d_ax[end] = d_ax_new*0.9
 
-                    d_ay_new = du_y_mode_solver(Dx,d_ax,Dy,d_ay,Dz,d_az,DN,global_d_fe_values,dmp,d_ybc,Ψ)
+                    d_ay_new = du_y_mode_solver(Dx,d_ax,Dy,d_ay,DN,global_d_fe_values,dmp,d_ybc,Ψ)
                     d_ay[end] = d_ay_new*0.9
 
-                    d_az_new = du_z_mode_solver(Dx,d_ax,Dy,d_ay,Dz,d_az,DN,global_d_fe_values,dmp,d_zbc,Ψ)
-                    d_az[end] = d_az_new*0.9
 
                     # println("Done with iteration $(iterations) for mode $(modeItr).")
 
-                    d_compsnew = IterativeFunctionComponents(d_ax_new,d_ay_new,d_az_new)
-                    d_xdiff, d_ydiff, d_zdiff = iteration_difference(d_compsnew,d_compsold)
-                    # println("d_xdiff = $(d_xdiff), d_ydiff = $(d_ydiff), d_zdiff = $(d_zdiff)")
+                    d_compsnew = IterativeFunctionComponents(d_ax_new,d_ay_new)
+                    d_xdiff, d_ydiff = iteration_difference(d_compsnew,d_compsold)
+                    # println("d_xdiff = $(d_xdiff), d_ydiff = $(d_ydiff)")
                     d_compsold = d_compsnew
 
-                    if (d_xdiff < TOL && d_ydiff < TOL && d_zdiff < TOL) || iterations > 100
+                    if (d_xdiff < TOL && d_ydiff < TOL) || iterations > 100
                         println("Converged for d mode $(modeItr) after $(iterations) iterations.")
-                        println("d_xdiff = $(d_xdiff), d_ydiff = $(d_ydiff), d_zdiff = $(d_zdiff)")
+                        println("d_xdiff = $(d_xdiff), d_ydiff = $(d_ydiff)")
                         break
                     end
 
@@ -324,19 +289,16 @@ function main_elastic_3D_3D_integration()
             if loadstep != 0
                 d_ax_old = copy(d_ax)
                 d_ay_old = copy(d_ay)
-                d_az_old = copy(d_az)
             end
         end
 
         # Write to file
-        vtkwriter(pvd,loadstep,Ux,u_ax,Uy,u_ay,Uz,u_az,Dx,d_ax,Dy,d_ay,Dz,d_az)
+        vtkwriter(pvd,loadstep,Ux,u_ax,Uy,u_ay,Dx,d_ax,Dy,d_ay)
 
     end # of loadstepping
 
     vtk_save(pvd)
-    return Ux,u_ax,Uy,u_ay,Uz,u_az,Dx,d_ax,Dy,d_ay,Dz,d_az
+    return Ux,u_ax,Uy,u_ay,Dx,d_ax,Dy,d_ay
 end
 
-@time o = main_elastic_3D_3D_integration();
-
-# postprocesser_main_elastic_3D_3D_integration(o...)
+@time o = main_damage_2D_2D_integration();

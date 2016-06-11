@@ -69,7 +69,7 @@ function get_d_N_3D{dimcomp,T,functionspace}(Dx::PGDComponent{dimcomp,T,function
 
             # Derivatives
             this_d_dNy = Dy.fev.dNdx[qpy][dof][1]
-            this_d_dNy_t = [this_d_dNy, d_Ny_, d_Ny_]
+            this_d_dNy_t = [d_Ny_, this_d_dNy, d_Ny_]
             d_dNy_ = Vec{3}((this_d_dNy_t...))
             push!(d_dNy_qp,d_dNy_)
         end
@@ -87,7 +87,7 @@ function get_d_N_3D{dimcomp,T,functionspace}(Dx::PGDComponent{dimcomp,T,function
 
             # Derivatives
             this_d_dNz = Dz.fev.dNdx[qpz][dof][1]
-            this_d_dNz_t = [this_d_dNz, d_Nz_, d_Nz_]
+            this_d_dNz_t = [d_Nz_, d_Nz_, this_d_dNz]
             d_dNz_ = Vec{3}((this_d_dNz_t...))
             push!(d_dNz_qp,d_dNz_)
         end
